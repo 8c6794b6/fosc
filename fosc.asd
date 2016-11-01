@@ -5,7 +5,7 @@
   :description "EFF-icient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "BSD"
-  :version "0.2.0"
+  :version "0.2.1"
   :depends-on
   #+(or abcl allegro cmucl ccl sbcl)
   (:fast-io)

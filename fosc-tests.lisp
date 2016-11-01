@@ -60,7 +60,8 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 (define-test mixed-message
   (edm 123 -1 0 1 "freq")
   (edm "freq" 1)
-  (edm "foo" "" 1 "b" 2 "" #(3 4) "5" 6.78 "" "90"))
+  (edm "foo" "" 1 "b" 2 "" #(3 4) "5" 6.78 "" "90")
+  (edm #(1 2 3) 4 #(5 6 7 8 9) 10 11 12 #(13 14 15) "" #(16) "" #(17 18)))
 
 (define-test bundle
   (edb #xffffffffffffffff ("/foo" 1 2.34 "5") ("/bar" #(6 7) 8.9 0))

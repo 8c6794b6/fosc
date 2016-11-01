@@ -20,7 +20,8 @@
          string-to-octets octets-to-string
          encode-bundle-elt encode-message-elt encode-data
          encode-timetag encode-typetag encode-string
-         encode-int64 encode-int32 encode-float32 pad
+         encode-int64 encode-int32 encode-float32
+         pad-always pad-when-necessary
          decode-address decode-data decode-int32 decode-float32
          decode-string decode-blob unpad))
 
@@ -86,12 +87,21 @@
   #-(or sbcl ccl clisp cmucl)
   (map 'string #'code-char octets))
 
-(defun pad (buf)
-  (dotimes (i (the fixnum (- 4 (mod (fast-io::output-buffer-len buf) 4))))
-    (writeu8 0 buf)))
+(defun pad-always (buf)
+  "Pad with 0 for 1 to 4 bytes."
+  (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
+    (dotimes (i (- 4 n))
+      (writeu8 0 buf))))
+
+(defun pad-when-necessary (buf)
+  "Pad with 0 for 0 to 3 bytes."
+  (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
+    (unless (eq 0 n)
+      (dotimes (i (- 4 n))
+        (writeu8 0 buf)))))
 
 (defun unpad (buf)
-  (let ((n (mod (fast-io::input-buffer-pos buf) 4)))
+  (let ((n (the fixnum (mod (fast-io::input-buffer-pos buf) 4))))
     (unless (eq 0 n)
       (dotimes (i (- 4 n))
         (read8 buf)))))
@@ -123,6 +133,10 @@
 ;;; XXX: DOUBLE-FLOAT and RATIOR are coerced to single-float in
 ;;; `encode-typetags' and `encode-data'.
 
+(defun encode-address (buf a)
+  (fast-write-sequence (string-to-octets a) buf)
+  (pad-always buf))
+
 (defun encode-int64 (buf i)
   (declare (type (signed-byte 64) i))
   (write64-be i buf))
@@ -132,18 +146,24 @@
   (write32-be i buf))
 
 (defun encode-float32 (buf f)
+  (declare (type single-float f))
   (encode-int32 buf (single-float-to-bits f)))
 
 (defun encode-string (buf s)
-  (fast-write-sequence (string-to-octets s) buf)
-  (pad buf))
+  (declare (type string s))
+  (if (string= s "")
+      (fast-write-sequence (octets-from '(0 0 0 0)) buf)
+      (progn
+        (fast-write-sequence (string-to-octets s) buf)
+        (write8-be 0 buf)
+        (pad-when-necessary buf))))
 
 (defun encode-blob (buf blob)
   (declare (type (simple-array *) blob))
   (let ((len (length blob)))
     (write32-be len buf)
     (fast-write-sequence blob buf))
-  (pad buf))
+  (pad-when-necessary buf))
 
 (defun encode-timetag (buf timetag)
   (cond
@@ -165,7 +185,7 @@
             (ratio (writeu8-char #\f))
             (array (writeu8-char #\b))
             (t (error 'fosc-encode-error :data (type-of d))))
-       finally (pad buf))))
+       finally (pad-always buf))))
 
 (defun encode-data (buf data)
   (loop for d in data
@@ -181,7 +201,7 @@
           (t (error 'fosc-encode-error :data d)))))
 
 (defun encode-message-elt (buf address data)
-  (encode-string buf address)
+  (encode-address buf address)
   (encode-typetags buf data)
   (encode-data buf data))
 
