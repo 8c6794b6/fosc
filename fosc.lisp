@@ -5,20 +5,86 @@
   (:export #:encode-message
            #:encode-bundle
            #:decode-message
-           #:decode-bundle))
+           #:decode-bundle
+           #:single-float-to-bits
+           #:bits-to-single-float
+           #:octets-to-string
+           #:string-to-octets))
 
 (in-package #:fosc)
 
 ;; (declaim (optimize (speed 3) (safety 1)))
 
 (declaim
- (inline encode-bundle-elt encode-message-elt encode-data
+ (inline single-float-to-bits bits-to-single-float
+         string-to-octets octets-to-string
+         encode-bundle-elt encode-message-elt encode-data
          encode-timetag encode-typetag encode-string
          encode-int64 encode-int32 encode-float32 pad
          decode-address decode-data decode-int32 decode-float32
-         decode-string decode-blob octets-to-string unpad))
+         decode-string decode-blob unpad))
 
 ;;; Auxiliary
+
+(defun single-float-to-bits (f)
+  #+abcl
+  (system:single-float-bits f)
+  #+allegro
+  (multiple-value-bind (x y)
+      (excl:single-float-to-shorts f)
+    (+ (ash x 16) y))
+  #+ccl
+  (ccl::single-float-bits f)
+  #+cmucl
+  (kernel:single-float-bits f)
+  #+sbcl
+  (sb-kernel:single-float-bits f)
+  #-(or abcl allegro ccl cmucl sbcl)
+  (ieee-floats:encode-float32 f))
+
+(defun bits-to-single-float (bits)
+  #+abcl
+  (system:make-single-float bits)
+  #+allegro
+  (excl:shorts-to-single-float (ldb (byte 16 16) bits)
+                               (ldb (byte 16 0) bits))
+  #+ccl
+  (CCL::HOST-SINGLE-FLOAT-FROM-UNSIGNED-BYTE-32 bits)
+  #+cmucl
+  (kernel:make-single-float bits)
+  #+sbcl
+  (sb-kernel:make-single-float bits)
+  #-(or abcl allegro ccl cmucl sbcl)
+  (ieee-floats:decode-float32 bits))
+
+(defun string-to-octets (s)
+  #+sbcl
+  (sb-ext::string-to-octets (the simple-string s))
+  #+ccl
+  (ccl::encode-string-to-octets (the simple-string s))
+  #+clisp
+  (system::convert-string-to-bytes (the simple-string s)
+                                   charset::iso-8859-1)
+  #+cmucl
+  (stream:string-to-octets (the simple-string s))
+  #-(or sbcl ccl clisp cmucl)
+  (let* ((len (length s))
+         (a (make-array len :element-type '(unsigned-byte 8))))
+    (loop for c across s for i from 0
+       do (setf (elt a i) (char-code c))
+       finally (return a))))
+
+(defun octets-to-string (octets)
+  #+sbcl
+  (sb-ext:octets-to-string octets)
+  #+ccl
+  (ccl::decode-string-from-octets octets)
+  #+clisp
+  (system::convert-string-from-bytes octets charset::iso-8859-1)
+  #+cmucl
+  (stream::octets-to-string octets)
+  #-(or sbcl ccl clisp cmucl)
+  (map 'string #'code-char octets))
 
 (defun pad (buf)
   (dotimes (i (the fixnum (- 4 (mod (fast-io::output-buffer-len buf) 4))))
@@ -66,45 +132,17 @@
   (write32-be i buf))
 
 (defun encode-float32 (buf f)
-  #+abcl
-  (encode-int32 buf (system:single-float-bits f))
-  #+allegro
-  (encode-int32 buf (multiple-value-bind (x y)
-                        (excl:single-float-to-shorts f)
-                      (+ (ash x 16) y)))
-  #+ccl
-  (encode-int32 buf (CCL::SINGLE-FLOAT-BITS f))
-  #+cmucl
-  (encode-int32 buf (kernel:single-float-bits f))
-  #+sbcl
-  (encode-int32 buf (sb-kernel:single-float-bits f))
-  #-(or abcl allegro ccl cmucl sbcl)
-  (encode-int32 buf (ieee-floats:encode-float32 f)))
+  (encode-int32 buf (single-float-to-bits f)))
 
 (defun encode-string (buf s)
-  (fast-write-sequence
-   #+sbcl
-   (sb-ext::string-to-octets (the simple-string s))
-   #+ccl
-   (ccl::encode-string-to-octets (the simple-string s))
-   #+clisp
-   (system::convert-string-to-bytes (the simple-string s)
-                                    charset::iso-8859-1)
-   #+cmucl
-   (stream:string-to-octets (the simple-string s))
-   #-(or sbcl ccl clisp cmucl)
-   (let* ((len (length s))
-          (a (make-array len :element-type '(unsigned-byte 8))))
-     (loop for c across s for i from 0
-        do (setf (elt a i) (char-code c))
-        finally (return a)))
-   buf)
+  (fast-write-sequence (string-to-octets s) buf)
   (pad buf))
 
 (defun encode-blob (buf blob)
   (declare (type (simple-array *) blob))
-  (write32-be (length blob) buf)
-  (fast-write-sequence blob buf)
+  (let ((len (length blob)))
+    (write32-be len buf)
+    (fast-write-sequence blob buf))
   (pad buf))
 
 (defun encode-timetag (buf timetag)
@@ -126,7 +164,7 @@
             (double-float (writeu8-char #\f))
             (ratio (writeu8-char #\f))
             (array (writeu8-char #\b))
-            (t (error 'fosc-encode-error :data d)))
+            (t (error 'fosc-encode-error :data (type-of d))))
        finally (pad buf))))
 
 (defun encode-data (buf data)
@@ -161,37 +199,15 @@
   (read32-be buf))
 
 (defun decode-float32 (buf)
-  #+abcl
-  (system:make-single-float (decode-int32 buf))
-  #+allegro
-  (excl:shorts-to-single-float (ldb (byte 16 16) (decode-int32 buf))
-                               (ldb (byte 16 0) (decode-int32 buf)))
-  #+ccl
-  (CCL::HOST-SINGLE-FLOAT-FROM-UNSIGNED-BYTE-32 (decode-int32 buf))
-  #+cmucl
-  (kernel:make-single-float (decode-int32 buf))
-  #+sbcl
-  (sb-kernel:make-single-float (decode-int32 buf))
-  #-(or abcl allegro ccl cmucl sbcl)
-  (ieee-floats:decode-float32 (decode-int32 buf)))
-
-(defun octets-to-string (octets)
-  #+sbcl
-  (sb-ext:octets-to-string octets)
-  #+ccl
-  (ccl::decode-string-from-octets octets)
-  #+clisp
-  (system::convert-string-from-bytes octets charset::iso-8859-1)
-  #+cmucl
-  (stream::octets-to-string octets)
-  #-(or sbcl ccl clisp cmucl)
-  (map 'string #'code-char octets))
+  (bits-to-single-float (decode-int32 buf)))
 
 (defun decode-string (buf)
   (let ((str (octets-to-string
               (with-fast-output (out)
-                (loop for c = (readu8 buf)
-                   while (not (eq c 0)) do (writeu8 c out))))))
+                (loop
+                   for c = (readu8 buf)
+                   while (not (eq c 0))
+                   do (writeu8 c out))))))
     (unpad buf)
     str))
 
@@ -231,7 +247,7 @@
   (cons (decode-address buf) (decode-data buf)))
 
 
-;;; Exported
+;;; Main interfaces
 
 (defun encode-message (address &rest data)
   "Encode OSC message with ADDRESS and DATA.
