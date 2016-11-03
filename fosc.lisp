@@ -9,7 +9,9 @@
            #:single-float-to-bits
            #:bits-to-single-float
            #:octets-to-string
-           #:string-to-octets))
+           #:string-to-octets
+           #:encode-error
+           #:decode-error))
 
 (in-package #:fosc)
 
@@ -25,7 +27,37 @@
          decode-address decode-data decode-int32 decode-float32
          decode-string decode-blob unpad))
 
-;;; Auxiliary
+
+;;; Conditions, Constants and Vars
+
+(defmacro define-fosc-error (name)
+  `(progn
+     (define-condition ,name (error)
+       ((text :initarg :text :reader text)
+        (args :initarg :args :reader args)))
+     (defmethod print-object ((e ,name) stream)
+       (let* ((m (apply #'format nil (text e) (args e)))
+              (m (concatenate 'string ',(symbol-name name) ": " m)))
+         (format stream m)))
+     (defun ,name (text &rest args)
+       (error ',name :text text :args args))))
+
+(define-fosc-error encode-error)
+(define-fosc-error decode-error)
+
+(defconstant +int32-max+ 4294967296)
+
+(defconstant +unix-epoch+ (encode-universal-time 0 0 0 1 1 1970 0))
+
+(defvar *hash-bundle*
+  (make-array 8 :element-type '(unsigned-byte 8)
+              :initial-contents '(35 98 117 110 100 108 101 0)))
+
+(defvar *immediately*
+  (make-array 8 :element-type '(unsigned-byte 8)
+              :initial-contents '(0 0 0 0 0 0 0 1)))
+
+;;; Implementation specific
 
 (defun single-float-to-bits (f)
   #+abcl
@@ -87,6 +119,9 @@
   #-(or sbcl ccl clisp cmucl)
   (map 'string #'code-char octets))
 
+
+;;; Auxiliary
+
 (defun pad-always (buf)
   "Pad with 0 for 1 to 4 bytes."
   (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
@@ -107,30 +142,9 @@
         (read8 buf)))))
 
 
-;;; Conditions, Constants and Vars
-
-(define-condition fosc-encode-error (error)
-  ((data :initarg :data :reader data)))
-
-(define-condition fosc-decode-error (error)
-  ((data :initarg :data :reader data)))
-
-(defconstant +int32-max+ 4294967296)
-
-(defconstant +unix-epoch+ (encode-universal-time 0 0 0 1 1 1970 0))
-
-(defvar *hash-bundle*
-  (make-array 8 :element-type '(unsigned-byte 8)
-              :initial-contents '(35 98 117 110 100 108 101 0)))
-
-(defvar *immediately*
-  (make-array 8 :element-type '(unsigned-byte 8)
-              :initial-contents '(0 0 0 0 0 0 0 1)))
-
-
 ;;; Encoding
 
-;;; XXX: DOUBLE-FLOAT and RATIOR are coerced to single-float in
+;;; XXX: DOUBLE-FLOAT and RATIO are coerced to single-float in
 ;;; `encode-typetags' and `encode-data'.
 
 (defun encode-address (buf a)
@@ -169,7 +183,7 @@
   (cond
     ((integerp timetag) (writeu64-be timetag buf))
     ((eql :now timetag) (fast-write-sequence *immediately* buf))
-    (t (error 'fosc-encode-error :data timetag))))
+    (t (encode-error "bad timetag ~a" timetag))))
 
 (defun encode-typetags (buf data)
   (macrolet ((writeu8-char (char)
@@ -184,7 +198,7 @@
             (double-float (writeu8-char #\f))
             (ratio (writeu8-char #\f))
             (array (writeu8-char #\b))
-            (t (error 'fosc-encode-error :data (type-of d))))
+            (t (encode-error "bad typetag ~a" (type-of d))))
        finally (pad-always buf))))
 
 (defun encode-data (buf data)
@@ -198,7 +212,7 @@
           (ratio (encode-float32 buf (float d 1e0)))
           ((simple-array (unsigned-byte 8) *) (encode-blob buf d))
           (array (encode-blob buf (octets-from d)))
-          (t (error 'fosc-encode-error :data d)))))
+          (t (encode-error "bad data ~a" d)))))
 
 (defun encode-message-elt (buf address data)
   (encode-address buf address)
@@ -260,7 +274,7 @@
                    ((tag-p #\f) (decode-float32 buf))
                    ((tag-p #\s) (decode-string buf))
                    ((tag-p #\b) (decode-blob buf))
-                   (t (error 'fosc-decode-error :data tag))))
+                   (t (decode-error "bad tag ~a" tag))))
        collect d)))
 
 (defun decode-message-elt (buf)
@@ -308,7 +322,7 @@ OSC messages, which should start with an address string.
          (the (simple-array (unsigned-byte 8)) *hash-bundle*)
        for u8 = (readu8 buf)
        unless (eq u8 expected)
-       do (error 'fosc-decode-error :data data))
+       do (decode-error "not a bundle ~a" data))
     (let ((timetag (readu64-be buf)))
       (labels ((encode-one (acc)
                  (let ((len (handler-case (read32-be buf)
