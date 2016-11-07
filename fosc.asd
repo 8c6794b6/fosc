@@ -2,14 +2,14 @@
 
 (defsystem #:fosc
   :name "fosc"
-  :description "EFF-icient OSC"
+  :description "Efficient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "BSD"
-  :version "0.3.0"
+  :version "0.4.0"
   :depends-on
-  #+(or abcl allegro cmucl ccl sbcl)
+  #+(or ccl sbcl)
   (:fast-io)
-  #-(or abcl allegro cmucl ccl sbcl)
+  #-(or ccl sbcl)
   (:fast-io :ieee-floats)
   :components ((:file "fosc"))
   :perform (test-op :after (o c)

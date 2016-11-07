@@ -30,13 +30,13 @@ Encoding OSC message, then decoding the result:
 Limitations
 -----------
 
-* Does not understand floating point numbers other than `SINGLE-FLOAT`. Real
-  non-integer numbers (`DOUBLE-FLOAT`, `RATIO`) are coerced.
+* Does not understand floating point numbers other than `SINGLE-FLOAT` and
+  `DOUBLE-FLOAT`. `RATIO` are coerced to `SINGLE_FLOAT`.
 
-* Does support messages inside a bundle, but no support for bundles inside a
+* Does support messages inside a bundle, but does not support bundles inside a
   bundle (aka. nested bundles).
 
 * In some Common Lisp implementations, performance may worse than `cl-osc`
-  package. In particular, the implementations without efficient string to
-  octet array conversion support, and without ieee 754 floating point number
-  support tend to show poor performance.
+  package. In particular, tends to show poor performance in implementations
+  without efficient string to/from octet array conversion, and without ieee 754
+  floating point number to/from octet array conversion.

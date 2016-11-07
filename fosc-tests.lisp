@@ -45,6 +45,8 @@
   (edm 1.234)
   (edm 1e-23)
   (edm 1234567.890123456789)
+  (edm 1.23456789d0)
+  (edm 1d-31)
   (edm "quick")
   (edm "")
   (edm "Lorem ipsum dolor sit amet, consectetur adipiscing
@@ -68,7 +70,8 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
   (edb #x1234567812345678
        ("/foo" 1 2.34 "5")
        ("/bar" #(6 7) 8.9 0)
-       ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)))
+       ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)
+       ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9)))
 
 (defun run-fosc-tests ()
   (let ((*print-failures* t)

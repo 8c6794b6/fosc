@@ -8,6 +8,8 @@
            #:decode-bundle
            #:single-float-to-bits
            #:bits-to-single-float
+           #:double-float-to-bits
+           #:bits-to-double-float
            #:octets-to-string
            #:string-to-octets
            #:encode-error
@@ -19,13 +21,14 @@
 
 (declaim
  (inline single-float-to-bits bits-to-single-float
+         double-float-to-bits bits-to-double-float
          string-to-octets octets-to-string
          encode-bundle-elt encode-message-elt encode-data
          encode-timetag encode-typetag encode-string
          encode-int64 encode-int32 encode-float32
          pad-always pad-when-necessary
          decode-address decode-data decode-int32 decode-float32
-         decode-string decode-blob unpad))
+         decode-float64 decode-string decode-blob unpad))
 
 
 ;;; Conditions, Constants and Vars
@@ -90,6 +93,31 @@
   #-(or abcl allegro ccl cmucl sbcl)
   (ieee-floats:decode-float32 bits))
 
+(defun double-float-to-bits (f)
+  #+sbcl
+  (let ((hi (sb-kernel:double-float-high-bits f))
+        (lo (sb-kernel:double-float-low-bits f)))
+    (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
+  #+ccl
+  (multiple-value-call
+      #'(lambda (hi lo)
+          (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
+    (ccl::double-float-bits f))
+  #-(or ccl sbcl)
+  (ieee-floats:encode-float64 f))
+
+(defun bits-to-double-float (bits)
+  #+sbcl
+  (let ((hi (ldb (byte 32 32) bits))
+        (lo (ldb (byte 32 0) bits)))
+    (sb-kernel:make-double-float hi lo))
+  #+ccl
+  (let ((hi (ldb (byte 32 32) bits))
+        (lo (ldb (byte 32 0) bits)))
+    (ccl::double-float-from-bits hi lo))
+  #-(or ccl sbcl)
+  (ieee-floats:decode-float64 bits))
+
 (defun string-to-octets (s)
   #+sbcl
   (sb-ext::string-to-octets (the simple-string s))
@@ -144,8 +172,8 @@
 
 ;;; Encoding
 
-;;; XXX: DOUBLE-FLOAT and RATIO are coerced to single-float in
-;;; `encode-typetags' and `encode-data'.
+;;; XXX: RATIO valus are coerced to single-float in `encode-typetags' and
+;;; `encode-data'.
 
 (defun encode-address (buf a)
   (fast-write-sequence (string-to-octets a) buf)
@@ -162,6 +190,10 @@
 (defun encode-float32 (buf f)
   (declare (type single-float f))
   (encode-int32 buf (single-float-to-bits f)))
+
+(defun encode-float64 (buf f)
+  (declare (type double-float f))
+  (encode-int64 buf (double-float-to-bits f)))
 
 (defun encode-string (buf s)
   (declare (type string s))
@@ -195,10 +227,10 @@
             ((signed-byte 32) (writeu8-char #\i))
             ((signed-byte 64) (writeu8-char #\h))
             (single-float (writeu8-char #\f))
-            (double-float (writeu8-char #\f))
+            (double-float (writeu8-char #\d))
             (ratio (writeu8-char #\f))
             (array (writeu8-char #\b))
-            (t (encode-error "bad typetag ~a" (type-of d))))
+            (t (encode-error "unknown typetag ~a" (type-of d))))
        finally (pad-always buf))))
 
 (defun encode-data (buf data)
@@ -208,7 +240,7 @@
           ((signed-byte 32) (encode-int32 buf d))
           ((signed-byte 64) (encode-int64 buf d))
           (single-float (encode-float32 buf d))
-          (double-float (encode-float32 buf (float d 1e0)))
+          (double-float (encode-float64 buf d))
           (ratio (encode-float32 buf (float d 1e0)))
           ((simple-array (unsigned-byte 8) *) (encode-blob buf d))
           (array (encode-blob buf (octets-from d)))
@@ -234,6 +266,9 @@
 
 (defun decode-float32 (buf)
   (bits-to-single-float (decode-int32 buf)))
+
+(defun decode-float64 (buf)
+  (bits-to-double-float (read64-be buf)))
 
 (defun decode-string (buf)
   (let ((str (octets-to-string
@@ -272,9 +307,10 @@
                  (cond
                    ((tag-p #\i) (decode-int32 buf))
                    ((tag-p #\f) (decode-float32 buf))
+                   ((tag-p #\d) (decode-float64 buf))
                    ((tag-p #\s) (decode-string buf))
                    ((tag-p #\b) (decode-blob buf))
-                   (t (decode-error "bad tag ~a" tag))))
+                   (t (decode-error "unknown tag ~a" tag))))
        collect d)))
 
 (defun decode-message-elt (buf)
