@@ -23,7 +23,7 @@
  (inline single-float-to-bits bits-to-single-float
          double-float-to-bits bits-to-double-float
          string-to-octets octets-to-string
-         encode-bundle-elt encode-message-elt encode-data
+         encode-bundle-elt encode-message-elt encode-one-data encode-data
          encode-timetag encode-typetag encode-string
          encode-int64 encode-int32 encode-float32
          pad-always pad-when-necessary
@@ -233,21 +233,23 @@
             (t (encode-error "unknown typetag ~a" (type-of d))))
        finally (pad-always buf))))
 
+(defun encode-one-data (buf d)
+  (typecase d
+    (simple-string (encode-string buf d))
+    ((signed-byte 32) (encode-int32 buf d))
+    ((signed-byte 64) (encode-int64 buf d))
+    (single-float (encode-float32 buf d))
+    (double-float (encode-float64 buf d))
+    (ratio (encode-float32 buf (float d 1e0)))
+    ((simple-array (unsigned-byte 8) *) (encode-blob buf d))
+    (array (encode-blob buf (octets-from d)))
+    (t (encode-error "bad data ~a" d))))
+
 (defun encode-data (buf data)
-  (loop for d in data
-     do (typecase d
-          (simple-string (encode-string buf d))
-          ((signed-byte 32) (encode-int32 buf d))
-          ((signed-byte 64) (encode-int64 buf d))
-          (single-float (encode-float32 buf d))
-          (double-float (encode-float64 buf d))
-          (ratio (encode-float32 buf (float d 1e0)))
-          ((simple-array (unsigned-byte 8) *) (encode-blob buf d))
-          (array (encode-blob buf (octets-from d)))
-          (t (encode-error "bad data ~a" d)))))
+  (dolist (d data) (encode-one-data buf d)))
 
 (defun encode-message-elt (buf address data)
-  (encode-address buf address)
+  (encode-one-data buf address)
   (encode-typetags buf data)
   (encode-data buf data))
 
