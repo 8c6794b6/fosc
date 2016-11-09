@@ -255,9 +255,9 @@
 
 (defun encode-bundle-elt (buf data)
   (fast-write-sequence
-   (octets-from (with-fast-output (tmp)
-                  (encode-message-elt tmp (first data) (rest data))
-                  (encode-int32 buf (fast-io::output-buffer-len tmp))))
+   (with-fast-output (tmp)
+     (encode-message-elt tmp (car data) (cdr data))
+     (encode-int32 buf (fast-io::output-buffer-len tmp)))
    buf))
 
 
@@ -330,7 +330,7 @@
   (with-fast-output (buf)
     (encode-message-elt buf address data)))
 
-(defun encode-bundle (timetag &rest data)
+(defun encode-bundle (timetag data)
   "Encode OSC bundle with TIMETAG and DATA.
 
 TIMETAG is a NTP timestamp value. Element of the DATA should be a list of

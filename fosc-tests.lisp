@@ -34,7 +34,7 @@
   `(assert-true
     (osc-equal '(,timetag ,@messages)
                (decode-bundle
-                (apply #'encode-bundle '(,timetag ,@messages))))))
+                (encode-bundle ,timetag '(,@messages))))))
 
 
 ;;; Test suite
