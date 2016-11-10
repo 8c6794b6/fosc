@@ -25,7 +25,7 @@
 (defmacro edm (&rest datum)
   "Encode and Decode osc Message with given DATUM."
   `(assert-true
-    (osc-equal '("/foo" ,@datum)
+    (osc-equal (list "/foo" ,@datum)
                (decode-message
                 (encode-message "/foo" ,@datum)))))
 
@@ -57,13 +57,16 @@ esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
 non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 ")
   (edm #(1 2 3 4))
-  (edm #(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17)))
+  (edm #(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17))
+  (edm '(1 2 3)))
 
 (define-test mixed-message
   (edm 123 -1 0 1 "freq")
   (edm "freq" 1)
   (edm "foo" "" 1 "b" 2 "" #(3 4) "5" 6.78 "" "90")
-  (edm #(1 2 3) 4 #(5 6 7 8 9) 10 11 12 #(13 14 15) "" #(16) "" #(17 18)))
+  (edm #(1 2 3) 4 #(5 6 7 8 9) 10 11 12 #(13 14 15) "" #(16) "" #(17 18))
+  (edm '(1 2 3) 4 '(4.5 6.7) 7.0 '("eight" "nine") "ten"
+       '(12 34.567 "eight" #(9 10))))
 
 (define-test bundle
   (edb #xffffffffffffffff ("/foo" 1 2.34 "5") ("/bar" #(6 7) 8.9 0))
@@ -71,7 +74,10 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
        ("/foo" 1 2.34 "5")
        ("/bar" #(6 7) 8.9 0)
        ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)
-       ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9)))
+       ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9))
+  (edb #xdeadbeaf
+       ("/foo" 1 2.34 "5")
+       ("/bar" #(6 7) (8 9 10))))
 
 (defun run-fosc-tests ()
   (let ((*print-failures* t)
