@@ -48,6 +48,8 @@
   (edm -9.8765)
   (edm 1.23456789d0)
   (edm 1d-31)
+  (edm -123.456789d0)
+  (edm -1d-31)
   (edm "quick")
   (edm "")
   (edm "Lorem ipsum dolor sit amet, consectetur adipiscing

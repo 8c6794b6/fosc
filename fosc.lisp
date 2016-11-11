@@ -117,7 +117,10 @@
   #+abcl
   (system:make-double-float bits)
   #+sbcl
-  (let ((hi (ldb (byte 32 32) bits))
+  (let ((hi (locally (declare (optimize (safety 0) (speed 3)))
+              ;; XXX: No gurantee to work with different SBCL versions.
+              (the (signed-byte 32)
+                   (ldb (byte 32 32) (the (unsigned-byte 64) bits)))))
         (lo (ldb (byte 32 0) bits)))
     (sb-kernel:make-double-float hi lo))
   #+ccl
@@ -205,7 +208,7 @@
 
 (defun encode-float64 (buf f)
   (declare (type double-float f))
-  (encode-int64 buf (double-float-to-bits f)))
+  (writeu64-be (double-float-to-bits f) buf))
 
 (defun encode-string (buf s)
   (declare (type string s))
@@ -292,7 +295,7 @@
   (bits-to-single-float (readu32-be buf)))
 
 (defun decode-float64 (buf)
-  (bits-to-double-float (read64-be buf)))
+  (bits-to-double-float (readu64-be buf)))
 
 (defun decode-string (buf)
   (let ((str (octets-to-string
