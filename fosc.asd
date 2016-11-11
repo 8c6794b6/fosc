@@ -5,7 +5,7 @@
   :description "Efficient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "BSD"
-  :version "0.5.3"
+  :version "0.6.0"
   :depends-on
   #+(or abcl ccl sbcl)
   (:fast-io)
@@ -18,7 +18,7 @@
 
 (defsystem #:fosc-tests
   :name "fosc-tests"
-  :depends-on (:fosc :lisp-unit)
+  :depends-on (:fosc :fiveam)
   :components ((:file "fosc-tests"))
   :perform (test-op :after (o c)
                     (load-system :fosc-tests)

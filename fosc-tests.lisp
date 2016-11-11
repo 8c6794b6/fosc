@@ -1,7 +1,7 @@
 ;;;; fosc-tests.lisp -- Tests for fosc
 
 (defpackage :fosc-tests
-  (:use #:cl #:fosc #:lisp-unit)
+  (:use #:cl #:fosc #:fiveam)
   (:export #:run-fosc-tests))
 
 (in-package #:fosc-tests)
@@ -23,23 +23,26 @@
     (t (error "osc-equal: unhandled cond a=~a b=~a" a b))))
 
 (defmacro edm (&rest datum)
-  "Encode and Decode osc Message with given DATUM."
-  `(assert-true
-    (osc-equal (list "/foo" ,@datum)
-               (decode-message
-                (encode-message "/foo" ,@datum)))))
+  "Encode and decode OSC message with given DATUM."
+  `(is (osc-equal
+        (list "/foo" ,@datum)
+        (decode-message (encode-message "/foo" ,@datum)))))
 
 (defmacro edb (timetag &rest messages)
-  "Encode and Decode osc Bundle with given MESSAGES."
-  `(assert-true
-    (osc-equal '(,timetag ,@messages)
-               (decode-bundle
-                (encode-bundle ,timetag '(,@messages))))))
+  "Encode and decode OSC bundle with given TIMETAG and MESSAGES."
+  `(is (osc-equal
+        '(,timetag ,@messages)
+        (decode-bundle (encode-bundle ,timetag '(,@messages))))))
 
 
 ;;; Test suite
 
-(define-test simple-message
+(def-suite fosc-suite :description "Test suite for fosc package.")
+
+(in-suite fosc-suite)
+
+(test simple-message
+  "Tests for encoding and decoding messages with single element."
   (edm 123)
   (edm -123)
   (edm 1.234)
@@ -63,7 +66,8 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
   (edm #(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17))
   (edm '(1 2 3)))
 
-(define-test mixed-message
+(test mixed-message
+  "Tests for encoding and decoding messages with mixed types."
   (edm 123 -1 0 1 "freq")
   (edm "freq" 1)
   (edm "foo" "" 1 "b" 2 "" #(3 4) "5" 6.78 "" "90")
@@ -71,20 +75,17 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
   (edm '(1 2 3) 4 '(4.5 6.7) 7.0 '("eight" "nine") "ten"
        '(12 34.567 "eight" #(9 10))))
 
-(define-test bundle
+(test bundle
+  "Tests for OSC bundles."
   (edb #xffffffffffffffff ("/foo" 1 2.34 "5") ("/bar" #(6 7) 8.9 0))
   (edb #x1234567812345678
        ("/foo" 1 2.34 "5")
        ("/bar" #(6 7) 8.9 0)
        ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)
        ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9))
-  (edb #xdeadbeaf
-       ("/foo" 1 2.34 "5")
-       ("/bar" #(6 7) (8 9 10))))
+  (edb #xdeadbeaf ("/foo" 1 2.34 "5") ("/bar" #(6 7) (8 9 10))))
 
 (defun run-fosc-tests ()
-  (let ((*print-failures* t)
-        (*print-errors* t))
-    (run-tests :all :fosc-tests)))
+  (run! 'fosc-suite))
 
 (provide :fosc-tests)
