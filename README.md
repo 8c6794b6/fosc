@@ -6,11 +6,11 @@ simple to use functions for encoding and decoding OSC messages and bundles.
 The package has been tested with following implementations:
 
  - ABCL 1.4.0 (with Java 1.8)
- - Clozure CL 1.10-r16196
+ - Clozure CL 1.11-16635
  - CMUCL 21b
  - ECL 16.1.2
  - GNU CLISP 2.49
- - SBCL 1.3.6
+ - SBCL 1.3.11
 
 
 Examples
@@ -31,7 +31,7 @@ Limitations
 -----------
 
 * Does not understand floating point numbers other than `SINGLE-FLOAT` and
-  `DOUBLE-FLOAT`. `RATIO` are coerced to `SINGLE_FLOAT`.
+  `DOUBLE-FLOAT`. `RATIO` are coerced to `SINGLE-FLOAT`.
 
 * Does support messages inside a bundle, but does not support bundles inside a
   bundle (aka. nested bundles).

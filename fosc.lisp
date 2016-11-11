@@ -3,8 +3,8 @@
 (defpackage :fosc
   (:use #:cl #:fast-io)
   (:export #:encode-message
-           #:encode-bundle
            #:decode-message
+           #:encode-bundle
            #:decode-bundle
            #:single-float-to-bits
            #:bits-to-single-float
@@ -62,6 +62,9 @@
 
 ;;; Implementation specific
 
+;; ABCL and SBCL uses '(signed-byte 32) for `single-float-to-bits' and
+;; `bits-to-single-float'. Others uses '(unsigned-byte 32).
+
 (defun single-float-to-bits (f)
   #+abcl
   (system:single-float-bits f)
@@ -94,6 +97,10 @@
   (ieee-floats:decode-float32 bits))
 
 (defun double-float-to-bits (f)
+  #+abcl
+  (let ((hi (system:double-float-high-bits f))
+        (lo (system:double-float-low-bits f)))
+    (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
   #+sbcl
   (let ((hi (sb-kernel:double-float-high-bits f))
         (lo (sb-kernel:double-float-low-bits f)))
@@ -103,10 +110,12 @@
       #'(lambda (hi lo)
           (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
     (ccl::double-float-bits f))
-  #-(or ccl sbcl)
+  #-(or abcl ccl sbcl)
   (ieee-floats:encode-float64 f))
 
 (defun bits-to-double-float (bits)
+  #+abcl
+  (system:make-double-float bits)
   #+sbcl
   (let ((hi (ldb (byte 32 32) bits))
         (lo (ldb (byte 32 0) bits)))
@@ -115,7 +124,7 @@
   (let ((hi (ldb (byte 32 32) bits))
         (lo (ldb (byte 32 0) bits)))
     (ccl::double-float-from-bits hi lo))
-  #-(or ccl sbcl)
+  #-(or abcl ccl sbcl)
   (ieee-floats:decode-float64 bits))
 
 (defun string-to-octets (s)
@@ -189,7 +198,10 @@
 
 (defun encode-float32 (buf f)
   (declare (type single-float f))
-  (encode-int32 buf (single-float-to-bits f)))
+  #+(or abcl sbcl)
+  (write32-be (single-float-to-bits f) buf)
+  #-(or abcl sbcl)
+  (writeu32-be (single-float-to-bits f) buf))
 
 (defun encode-float64 (buf f)
   (declare (type double-float f))
@@ -274,7 +286,10 @@
   (read32-be buf))
 
 (defun decode-float32 (buf)
-  (bits-to-single-float (decode-int32 buf)))
+  #+(or abcl sbcl)
+  (bits-to-single-float (read32-be buf))
+  #-(or abcl sbcl)
+  (bits-to-single-float (readu32-be buf)))
 
 (defun decode-float64 (buf)
   (bits-to-double-float (read64-be buf)))

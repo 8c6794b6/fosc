@@ -5,11 +5,11 @@
   :description "Efficient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "BSD"
-  :version "0.5.1"
+  :version "0.5.2"
   :depends-on
-  #+(or ccl sbcl)
+  #+(or abcl ccl sbcl)
   (:fast-io)
-  #-(or ccl sbcl)
+  #-(or abcl ccl sbcl)
   (:fast-io :ieee-floats)
   :components ((:file "fosc"))
   :perform (test-op :after (o c)
