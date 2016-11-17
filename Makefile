@@ -16,6 +16,9 @@ test-ccl64:
 test-clisp:
 	clisp -i tools/run-tests.lisp
 
+test-cmucl:
+	ros -L cmu-bin tools/run-tests.lisp
+
 test-ecl:
 	ecl -shell tools/run-tests.lisp
 

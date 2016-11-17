@@ -1,5 +1,5 @@
-fosc - An Efficient OSC for Common Lisp
-=======================================
+fosc - Efficient OSC for Common Lisp
+====================================
 
 The fosc package aims to provide limited, though efficient, portable and
 simple to use functions for encoding and decoding OSC messages and bundles.

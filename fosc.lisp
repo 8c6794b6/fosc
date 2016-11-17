@@ -201,9 +201,9 @@
 
 (defun encode-float32 (buf f)
   (declare (type single-float f))
-  #+(or abcl sbcl)
+  #+(or abcl cmucl sbcl)
   (write32-be (single-float-to-bits f) buf)
-  #-(or abcl sbcl)
+  #-(or abcl cmucl sbcl)
   (writeu32-be (single-float-to-bits f) buf))
 
 (defun encode-float64 (buf f)
@@ -289,9 +289,9 @@
   (read32-be buf))
 
 (defun decode-float32 (buf)
-  #+(or abcl sbcl)
+  #+(or abcl cmucl sbcl)
   (bits-to-single-float (read32-be buf))
-  #-(or abcl sbcl)
+  #-(or abcl cmucl sbcl)
   (bits-to-single-float (readu32-be buf)))
 
 (defun decode-float64 (buf)
