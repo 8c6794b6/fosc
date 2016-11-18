@@ -25,6 +25,14 @@ test-ecl:
 test-sbcl:
 	sbcl --script tools/run-tests.lisp
 
+coverage: coverage-ccl coverage-sbcl
+
+coverage-ccl:
+	ros -L ccl-bin tools/coverage.lisp
+
+coverage-sbcl:
+	ros -L sbcl tools/coverage.lisp
+
 clean:
 	find ./  \
 	\( -name '*~' -o -name '*.fasl' -o -name '*.fas' \

@@ -19,6 +19,7 @@
 
 ;; (declaim (optimize (speed 3) (safety 1)))
 
+#-coverage
 (declaim
  (inline single-float-to-bits bits-to-single-float
          double-float-to-bits bits-to-double-float
@@ -33,17 +34,18 @@
 
 ;;; Conditions, Constants and Vars
 
-(defmacro define-fosc-error (name)
-  `(progn
-     (define-condition ,name (error)
-       ((text :initarg :text :reader text)
-        (args :initarg :args :reader args)))
-     (defmethod print-object ((e ,name) stream)
-       (let* ((m (apply #'format nil (text e) (args e)))
-              (m (concatenate 'string ',(symbol-name name) ": " m)))
-         (format stream m)))
-     (defun ,name (text &rest args)
-       (error ',name :text text :args args))))
+(eval-when (:compile-toplevel)
+  (defmacro define-fosc-error (name)
+    `(progn
+       (define-condition ,name (error)
+         ((text :initarg :text :reader text)
+          (args :initarg :args :reader args)))
+       (defmethod print-object ((e ,name) stream)
+         (let* ((m (apply #'format nil (text e) (args e)))
+                (m (concatenate 'string ',(symbol-name name) ": " m)))
+           (format stream m)))
+       (defun ,name (text &rest args)
+         (error ',name :text text :args args)))))
 
 (define-fosc-error encode-error)
 (define-fosc-error decode-error)
@@ -60,6 +62,7 @@
   (make-array 8 :element-type '(unsigned-byte 8)
               :initial-contents '(0 0 0 0 0 0 0 1)))
 
+
 ;;; Implementation specific
 
 ;; ABCL and SBCL uses '(signed-byte 32) for `single-float-to-bits' and
@@ -187,10 +190,6 @@
 ;;; XXX: RATIO valus are coerced to single-float in `encode-typetags' and
 ;;; `encode-data'.
 
-(defun encode-address (buf a)
-  (fast-write-sequence (string-to-octets a) buf)
-  (pad-always buf))
-
 (defun encode-int64 (buf i)
   (declare (type (signed-byte 64) i))
   (write64-be i buf))
@@ -263,8 +262,7 @@
                (array (encode-blob buf (octets-from d)))
                ((signed-byte 64) (encode-int64 buf d))
                (double-float (encode-float64 buf d))
-               (cons (dolist (e d) (fn e)))
-               (t (encode-error "bad data ~a" d)))))
+               (cons (dolist (e d) (fn e))))))
     (fn d)))
 
 (defun encode-data (buf data)
@@ -287,6 +285,9 @@
 
 (defun decode-int32 (buf)
   (read32-be buf))
+
+(defun decode-int64 (buf)
+  (read64-be buf))
 
 (defun decode-float32 (buf)
   #+(or abcl cmucl sbcl)
@@ -342,6 +343,8 @@
                       (values (decode-blob buf) (cdr tags)))
                      ((tag-p tag #\d)
                       (values (decode-float64 buf) (cdr tags)))
+                     ((tag-p tag #\h)
+                      (values (decode-int64 buf) (cdr tags)))
                      ((tag-p tag #\[) (fn (cdr tags) nil))
                      (t (decode-error "unknown tag ~a" tag)))))
                (fn (tags acc)
