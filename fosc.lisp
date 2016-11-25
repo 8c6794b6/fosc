@@ -91,7 +91,7 @@
   (excl:shorts-to-single-float (ldb (byte 16 16) bits)
                                (ldb (byte 16 0) bits))
   #+ccl
-  (CCL::HOST-SINGLE-FLOAT-FROM-UNSIGNED-BYTE-32 bits)
+  (ccl::host-single-float-from-unsigned-byte-32 bits)
   #+cmucl
   (kernel:make-single-float bits)
   #+sbcl
