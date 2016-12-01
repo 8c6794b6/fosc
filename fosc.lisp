@@ -58,10 +58,6 @@
   (make-array 8 :element-type '(unsigned-byte 8)
               :initial-contents '(35 98 117 110 100 108 101 0)))
 
-(defvar *immediately*
-  (make-array 8 :element-type '(unsigned-byte 8)
-              :initial-contents '(0 0 0 0 0 0 0 1)))
-
 
 ;;; Implementation specific
 
@@ -226,10 +222,8 @@
   (pad-when-necessary buf))
 
 (defun encode-timetag (buf timetag)
-  (cond
-    ((integerp timetag) (writeu64-be timetag buf))
-    ((eql :now timetag) (fast-write-sequence *immediately* buf))
-    (t (encode-error "bad timetag ~a" timetag))))
+  (the (unsigned-byte 64) timetag)
+  (writeu64-be timetag buf))
 
 (defun encode-typetags (buf data)
   (macrolet ((writeu8-char (char)

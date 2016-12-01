@@ -14,8 +14,6 @@
     ((and (vectorp a) (vectorp b))
      (and (eql (length a) (length b))
           (loop for x across a for y across b always (funcall test x y))))
-    ((eq a :now) (or (eq b :now) (eq b 1)))
-    ((eq b :now) (or (eq a :now) (eq a 1)))
     ((or (rationalp a) (rationalp b))
      (funcall test (coerce a 'single-float) (coerce b 'single-float)))
     ((and (atom a) (atom b))
@@ -96,7 +94,7 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
     (flet ((fn (x)
              (+ x 1)))
       (encode-message "/foo" (list #'fn))))
-  (signals (encode-error)
+  (signals (error)
     (encode-bundle 'not-a-time-tag
                    '(("/foo" 1 2 3) ("/bar" 4 5 6))))
   (signals (decode-error)
@@ -105,7 +103,8 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 (test bundle
   "Tests for OSC bundles."
   (edb #xffffffffffffffff ("/foo" 1 2.34 "5") ("/bar" #(6 7) 8.9 0))
-  (edb :now ("/foo" 1 2.34 "five" ("/bar" #(6 7) -8.9)))
+  (edb #xdeadbeaf12345678
+       ("/foo" 1 2.34 "five" ("/bar" #(6 7) -8.9)))
   (edb #x1234567812345678
        ("/foo" 1 2.34 "5")
        ("/bar" #(6 7) 8.9 0)
