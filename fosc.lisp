@@ -50,10 +50,6 @@
 (define-fosc-error encode-error)
 (define-fosc-error decode-error)
 
-(defconstant +int32-max+ 4294967296)
-
-(defconstant +unix-epoch+ (encode-universal-time 0 0 0 1 1 1970 0))
-
 (defvar *hash-bundle*
   (make-array 8 :element-type '(unsigned-byte 8)
               :initial-contents '(35 98 117 110 100 108 101 0)))
@@ -162,13 +158,13 @@
 ;;; Auxiliary
 
 (defun pad-always (buf)
-  "Pad with 0 for 1 to 4 bytes."
+  "Pad with zeros for 1 to 4 bytes."
   (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
     (dotimes (i (- 4 n))
       (writeu8 0 buf))))
 
 (defun pad-when-necessary (buf)
-  "Pad with 0 for 0 to 3 bytes."
+  "Pad with zeros for 0 to 3 bytes."
   (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
     (unless (eq 0 n)
       (dotimes (i (- 4 n))
@@ -359,7 +355,7 @@
 (defun encode-message (address &rest data)
   "Encode OSC message with ADDRESS and DATA.
 
-  (fosc::encode-message \"/foo\" 1 2)
+  (encode-message \"/foo\" 1 2)
   ===> #(47 102 111 111 0 0 0 0 44 105 105 0 0 0 0 1 0 0 0 2)
 "
   (with-fast-output (buf)
@@ -368,10 +364,10 @@
 (defun encode-bundle (timetag data)
   "Encode OSC bundle with TIMETAG and DATA.
 
-TIMETAG is a NTP timestamp value. Element of the DATA should be a list of
-OSC messages, which should start with an address string.
+TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages, which
+should start with an address.
 
-  > (encode-bundle #xffffffffffffffff '(\"/foo\" 1 2) '(\"/bar\" 4))
+  > (encode-bundle #xffffffffffffffff '((\"/foo\" 1 2) (\"/bar\" 4)))
   ===> #(35 98 117 110 100 108 101 0 255 255 255 255 255 255 255 255 0 0 0
   20 47 102 111 111 0 0 0 0 44 105 105 0 0 0 0 1 0 0 0 2 0 0 0 16 47 98 97
   114 0 0 0 0 44 105 0 0 0 0 0 4)
