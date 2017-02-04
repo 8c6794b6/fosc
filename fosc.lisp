@@ -400,5 +400,3 @@ should start with an address.
                        (encode-one (cons (decode-message-elt buf) acc))
                        (nreverse acc)))))
         (cons timetag (encode-one nil))))))
-
-(provide :fosc)
