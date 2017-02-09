@@ -2,28 +2,25 @@
 
 all: test
 
-test: test-abcl test-ccl test-ccl64 test-clisp test-ecl test-sbcl
+test: test-abcl test-ccl test-cmucl test-ecl test-sbcl
 
 test-abcl:
-	abcl --load tools/run-tests.lisp
+	ros -L abcl tools/run-test.ros
 
 test-ccl:
-	ccl --load tools/run-tests.lisp
+	ros -L ccl-bin tools/run-test.ros
 
-test-ccl64:
-	ccl64 --load tools/run-tests.lisp
-
-test-clisp:
-	clisp -i tools/run-tests.lisp
+# test-clisp:
+# 	clisp -i tools/run-test.ros
 
 test-cmucl:
-	ros -L cmu-bin tools/run-tests.lisp
+	ros -L cmu-bin tools/run-test.ros
 
 test-ecl:
-	ecl -shell tools/run-tests.lisp
+	ros -L ecl tools/run-test.ros
 
 test-sbcl:
-	sbcl --script tools/run-tests.lisp
+	ros -L sbcl tools/run-test.ros
 
 coverage: coverage-ccl coverage-sbcl
 

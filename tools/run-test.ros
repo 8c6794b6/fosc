@@ -1,0 +1,17 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#| Script to run FOSC tests.
+exec ros -Q -- $0 "$@"
+|#
+(ros:ensure-asdf)
+
+(defpackage :ros.script.run-test
+  (:use :cl))
+
+(in-package :ros.script.run-test)
+
+(defun main (&rest argv)
+  (declare (ignore argv))
+  (asdf:test-system :fosc))
+
+;;; vim: set ft=lisp lisp:
