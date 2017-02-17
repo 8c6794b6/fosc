@@ -10,7 +10,7 @@ The package has been tested with following implementations:
  - CMUCL 21b
  - ECL 16.1.2
  - GNU CLISP 2.49
- - SBCL 1.3.11
+ - SBCL 1.3.14
 
 
 Examples
@@ -38,5 +38,5 @@ Limitations
 
 * In some Common Lisp implementations, performance may worse than `cl-osc`
   package. In particular, tends to show poor performance in implementations
-  without efficient string to/from octet array conversion, and without ieee 754
-  floating point number to/from octet array conversion.
+  without efficient string to/from octet array conversion, and without ieee
+  754 floating point number to/from octet array conversion.

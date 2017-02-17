@@ -6,14 +6,11 @@
            #:decode-message
            #:encode-bundle
            #:decode-bundle
-           #:single-float-to-bits
-           #:bits-to-single-float
-           #:double-float-to-bits
-           #:bits-to-double-float
-           #:octets-to-string
-           #:string-to-octets
            #:encode-error
-           #:decode-error))
+           #:decode-error
+
+           #:octets-to-ascii
+           #:ascii-to-octets))
 
 (in-package #:fosc)
 
@@ -23,7 +20,7 @@
 (declaim
  (inline single-float-to-bits bits-to-single-float
          double-float-to-bits bits-to-double-float
-         string-to-octets octets-to-string
+         ascii-to-octets octets-to-ascii
          encode-bundle-elt encode-message-elt encode-one-data encode-data
          encode-timetag encode-typetag encode-string
          encode-int64 encode-int32 encode-float32
@@ -55,10 +52,7 @@
               :initial-contents '(35 98 117 110 100 108 101 0)))
 
 
-;;; Implementation specific
-
-;; ABCL and SBCL uses '(signed-byte 32) for `single-float-to-bits' and
-;; `bits-to-single-float'. Others uses '(unsigned-byte 32).
+;;; Implementation specific: floats
 
 (defun single-float-to-bits (f)
   #+abcl
@@ -113,7 +107,8 @@
   (system:make-double-float bits)
   #+sbcl
   (let ((hi (locally (declare (optimize (safety 0) (speed 3)))
-              ;; XXX: No gurantee to work with different SBCL versions.
+              ;; XXX: Not sure whether this works with different SBCL
+              ;; versions, or different platform than x86-64 Linux.
               (the (signed-byte 32)
                    (ldb (byte 32 32) (the (unsigned-byte 64) bits)))))
         (lo (ldb (byte 32 0) bits)))
@@ -125,34 +120,56 @@
   #-(or abcl ccl sbcl)
   (ieee-floats:decode-float64 bits))
 
-(defun string-to-octets (s)
-  #+sbcl
-  (sb-ext::string-to-octets (the simple-string s))
-  #+ccl
-  (ccl::encode-string-to-octets (the simple-string s))
-  #+clisp
-  (system::convert-string-to-bytes (the simple-string s)
-                                   charset::iso-8859-1)
-  #+cmucl
-  (stream:string-to-octets (the simple-string s))
-  #-(or sbcl ccl clisp cmucl)
-  (let* ((len (length s))
-         (a (make-array len :element-type '(unsigned-byte 8))))
-    (loop for c across s for i from 0
-       do (setf (elt a i) (char-code c))
-       finally (return a))))
+
+;;; Implementation specific: ASCII strings
 
-(defun octets-to-string (octets)
-  #+sbcl
-  (sb-ext:octets-to-string octets)
-  #+ccl
-  (ccl::decode-string-from-octets octets)
+;;; Did some benchmarks with encode/decode small sized strings. Assuming
+;;; that small sized strings are likely to be used as parameters in OSC
+;;; messages, frequently observed than large sized strings in OSC payload
+;;; data. Compared with following implementation specific functions:
+;;;
+;;; CCL:
+;;;  - `ccl:encode-string-to-octets'
+;;;  - `ccl:decode-string-from-octets'
+;;;
+;;; CMUCL:
+;;;  - `stream:string-to-octets'
+;;;  - `stream:octets-to-string'
+;;;
+;;; SBCL:
+;;;  - `sb-ext::string-to-octets'
+;;;  - `sb-ext:octets-to-string'
+;;;
+;;; A simple array creation then update the contents approach performed
+;;; better than using above implementation specific code except for CMUCL's
+;;; `stream:octets-to-string'. When the string is known as ASCII, manual
+;;; array management performed better.
+
+(defun ascii-to-octets (s)
+  (declare (type simple-string s))
+  #+clisp
+  (system::convert-string-to-bytes s charset::iso-8859-1)
+  #-(or clisp)
+  (loop
+     with arr = (make-array (length s) :element-type '(unsigned-byte 8))
+     for c across s
+     for i fixnum from 0
+     do (setf (aref arr i) (char-code c))
+     finally (return arr)))
+
+(defun octets-to-ascii (octets)
+  (declare (type (array (unsigned-byte 8)) octets))
   #+clisp
   (system::convert-string-from-bytes octets charset::iso-8859-1)
   #+cmucl
   (stream::octets-to-string octets)
-  #-(or sbcl ccl clisp cmucl)
-  (map 'string #'code-char octets))
+  #-(or clisp cmucl)
+  (loop
+     with string = (make-string (length octets))
+     for o across octets
+     for i from 0
+     do (setf (aref string i) (code-char o))
+     finally (return string)))
 
 
 ;;; Auxiliary
@@ -179,7 +196,10 @@
 
 ;;; Encoding
 
-;;; XXX: RATIO valus are coerced to single-float in `encode-typetags' and
+;;; ABCL, CMUCL, and SBCL uses '(signed-byte 32) for `single-float-to-bits'
+;;; and `bits-to-single-float'. Others uses '(unsigned-byte 32).
+;;;
+;;; RATIO valus are coerced to single-float in `encode-typetags' and
 ;;; `encode-data'.
 
 (defun encode-int64 (buf i)
@@ -206,7 +226,7 @@
   (if (string= s "")
       (fast-write-sequence (octets-from '(0 0 0 0)) buf)
       (progn
-        (fast-write-sequence (string-to-octets s) buf)
+        (fast-write-sequence (ascii-to-octets s) buf)
         (write8-be 0 buf)
         (pad-when-necessary buf))))
 
@@ -289,7 +309,7 @@
   (bits-to-double-float (readu64-be buf)))
 
 (defun decode-string (buf)
-  (let ((str (octets-to-string
+  (let ((str (octets-to-ascii
               (with-fast-output (out)
                 (loop
                    for c = (readu8 buf)
@@ -307,7 +327,7 @@
     ret))
 
 (defun decode-address (buf)
-  (octets-to-string
+  (octets-to-ascii
    (with-fast-output (out)
      (loop
         for c = (the (unsigned-byte 8) (readu8 buf))
@@ -364,8 +384,8 @@
 (defun encode-bundle (timetag data)
   "Encode OSC bundle with TIMETAG and DATA.
 
-TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages, which
-should start with an address.
+TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages,
+which must start with an address.
 
   > (encode-bundle #xffffffffffffffff '((\"/foo\" 1 2) (\"/bar\" 4)))
   ===> #(35 98 117 110 100 108 101 0 255 255 255 255 255 255 255 255 0 0 0
@@ -379,12 +399,12 @@ should start with an address.
       (encode-bundle-elt buf d))))
 
 (defun decode-message (data)
-  "Decode from octet array DATA to OSC message."
+  "Decode from octet vector DATA to OSC message."
   (with-fast-input (buf data)
     (decode-message-elt buf)))
 
 (defun decode-bundle (data)
-  "Decode from octet array DATA to OSC bundle."
+  "Decode from octet vector DATA to OSC bundle."
   (with-fast-input (buf data)
     (loop
        for expected across

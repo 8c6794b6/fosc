@@ -1,0 +1,42 @@
+#!/bin/sh
+#|-*- mode: lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+
+(ros:ensure-asdf)
+
+(ql:quickload '(:fosc :osc))
+
+(defpackage :ros.script.run-bench
+  (:use :cl))
+
+(in-package :ros.script.run-bench)
+
+(defun fosc-encode-small-message ()
+  (fosc::encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+
+(defun osc-encode-small-message ()
+  (osc::encode-message "/foo"  1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+
+(defvar *small-message-repeats* 100000)
+
+(defvar *small-message-to-decode*
+  (fosc::encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+
+(defun main ()
+  (format t ";;; FOSC - encode-small-messages~%")
+  (time (dotimes (i *small-message-repeats*)
+          (fosc-encode-small-message)))
+
+  (format t ";;; OSC - encode-small-messages~%")
+  (time (dotimes (i *small-message-repeats*)
+          (osc-encode-small-message)))
+
+  (format t ";;; FOSC - decode-small-messages~%")
+  (time (dotimes (i *small-message-repeats*)
+          (fosc::decode-message *small-message-to-decode*)))
+
+  (format t ";;; OSC - decode-small-messages~%")
+  (time (dotimes (i *small-message-repeats*)
+          (osc::decode-message *small-message-to-decode*))))
