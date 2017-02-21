@@ -8,7 +8,6 @@
            #:decode-bundle
            #:encode-error
            #:decode-error
-
            #:octets-to-ascii
            #:ascii-to-octets))
 
@@ -21,8 +20,8 @@
  (inline single-float-to-bits bits-to-single-float
          double-float-to-bits bits-to-double-float
          ascii-to-octets octets-to-ascii
-         encode-bundle-elt encode-message-elt encode-one-data encode-data
-         encode-timetag encode-typetag encode-string
+         encode-bundle-elt encode-message-elt encode-one-data
+         encode-data encode-timetag encode-typetag encode-string
          encode-int64 encode-int32 encode-float32
          pad-always pad-when-necessary
          decode-address decode-data decode-int32 decode-float32
@@ -146,6 +145,7 @@
 ;;; array management performed better.
 
 (defun ascii-to-octets (s)
+  "Converts ASCII string S to octet vector."
   (declare (type simple-string s))
   #+clisp
   (system::convert-string-to-bytes s charset::iso-8859-1)
@@ -157,17 +157,18 @@
      do (setf (aref arr i) (char-code c))
      finally (return arr)))
 
-(defun octets-to-ascii (octets)
-  (declare (type (array (unsigned-byte 8)) octets))
+(defun octets-to-ascii (data)
+  "Converts octet vector DATA to ASCII string."
+  (declare (type (array (unsigned-byte 8)) data))
   #+clisp
-  (system::convert-string-from-bytes octets charset::iso-8859-1)
+  (system::convert-string-from-bytes data charset::iso-8859-1)
   #+cmucl
-  (stream::octets-to-string octets)
+  (stream::octets-to-string data)
   #-(or clisp cmucl)
   (loop
-     with string = (make-string (length octets))
-     for o across octets
-     for i from 0
+     with string = (make-string (length data))
+     for o across data
+     for i fixnum from 0
      do (setf (aref string i) (code-char o))
      finally (return string)))
 
@@ -335,36 +336,35 @@
         when (/= c 0) do (writeu8 c out)))))
 
 (defun decode-data (buf)
-  (let ((tags (loop for tag = (readu8 buf) while (not (eq tag 0))
+  (let ((tags (loop
+                 for tag = (readu8 buf)
+                 while (not (eq tag 0))
                  collect tag)))
     (unpad buf)
-    (macrolet ((tag-p (tag char)
-                 `(eq ,tag ,(char-code char))))
-      (labels ((dec (tags)
-                 (let ((tag (car tags)))
-                   (cond
-                     ((tag-p tag #\i)
+    (labels ((dec (tags)
+               (let ((tag (car tags)))
+                 (ecase tag
+                   (#.(char-code #\i)
                       (values (decode-int32 buf) (cdr tags)))
-                     ((tag-p tag #\f)
+                   (#.(char-code #\f)
                       (values (decode-float32 buf) (cdr tags)))
-                     ((tag-p tag #\s)
+                   (#.(char-code #\s)
                       (values (decode-string buf) (cdr tags)))
-                     ((tag-p tag #\b)
+                   (#.(char-code #\b)
                       (values (decode-blob buf) (cdr tags)))
-                     ((tag-p tag #\d)
+                   (#.(char-code #\d)
                       (values (decode-float64 buf) (cdr tags)))
-                     ((tag-p tag #\h)
+                   (#.(char-code #\h)
                       (values (decode-int64 buf) (cdr tags)))
-                     ((tag-p tag #\[) (fn (cdr tags) nil))
-                     (t (decode-error "unknown tag ~a" tag)))))
-               (fn (tags acc)
-                 (cond
-                   ((null tags) (nreverse acc))
-                   ((tag-p (car tags) #\])
-                    (values (nreverse acc) (cdr tags)))
-                   (t (multiple-value-bind (elem rest) (dec tags)
-                        (fn rest (cons elem acc)))))))
-        (fn tags nil)))))
+                   (#.(char-code #\[) (fn (cdr tags) nil)))))
+             (fn (tags acc)
+               (cond
+                 ((null tags) (nreverse acc))
+                 ((eq (car tags) #.(char-code #\]))
+                  (values (nreverse acc) (cdr tags)))
+                 (t (multiple-value-bind (elem rest) (dec tags)
+                      (fn rest (cons elem acc)))))))
+      (fn tags nil))))
 
 (defun decode-message-elt (buf)
   (cons (decode-address buf) (decode-data buf)))
@@ -384,14 +384,15 @@
 (defun encode-bundle (timetag data)
   "Encode OSC bundle with TIMETAG and DATA.
 
-TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages,
-which must start with an address.
+TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages.
 
   > (encode-bundle #xffffffffffffffff '((\"/foo\" 1 2) (\"/bar\" 4)))
   ===> #(35 98 117 110 100 108 101 0 255 255 255 255 255 255 255 255 0 0 0
   20 47 102 111 111 0 0 0 0 44 105 105 0 0 0 0 1 0 0 0 2 0 0 0 16 47 98 97
   114 0 0 0 0 44 105 0 0 0 0 0 4)
 "
+  (declare (type (unsigned-byte 64) timetag)
+           (type list data))
   (with-fast-output (buf)
     (fast-write-sequence *hash-bundle* buf)
     (encode-timetag buf timetag)
@@ -400,11 +401,13 @@ which must start with an address.
 
 (defun decode-message (data)
   "Decode from octet vector DATA to OSC message."
+  (declare (type (simple-array (unsigned-byte 8)) data))
   (with-fast-input (buf data)
     (decode-message-elt buf)))
 
 (defun decode-bundle (data)
   "Decode from octet vector DATA to OSC bundle."
+  (declare (type (simple-array (unsigned-byte 8)) data))
   (with-fast-input (buf data)
     (loop
        for expected across

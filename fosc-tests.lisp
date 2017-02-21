@@ -113,4 +113,4 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
   (edb #xdeadbeaf ("/foo" 1 2.34 "5") ("/bar" #(6 7) (8 9 10))))
 
 (defun run-fosc-tests ()
-  (run! 'fosc-suite))
+  (run-all-tests))

@@ -6,7 +6,7 @@
 (progn
   (setq ccl:*compile-code-coverage* t)
   (asdf:compile-system :fosc :force t)
-  (asdf:compile-system :fosc-tests :force t)
+  (asdf:compile-system :fosc/tests :force t)
   (asdf:test-system :fosc :force t)
   (report-coverage "/tmp/coverage-ccl-fosc/index.html"))
 
