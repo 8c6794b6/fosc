@@ -4,6 +4,7 @@
 exec ros -Q -- $0 "$@"
 |#
 (ros:ensure-asdf)
+(ql:quickload :fosc)
 
 (defpackage :ros.script.run-test
   (:use :cl))

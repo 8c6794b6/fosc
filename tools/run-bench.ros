@@ -5,38 +5,56 @@ exec ros -Q -- $0 "$@"
 |#
 
 (ros:ensure-asdf)
-
-(ql:quickload '(:fosc :osc))
+(ql:quickload '(:fosc :osc) :silent t)
 
 (defpackage :ros.script.run-bench
   (:use :cl))
 
 (in-package :ros.script.run-bench)
 
+(defvar *nrepeats* 100000)
+
 (defun fosc-encode-small-message ()
-  (fosc::encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+  (fosc:encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
 
 (defun osc-encode-small-message ()
-  (osc::encode-message "/foo"  1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+  (osc:encode-message "/foo"  1 2 3 1.0 2.0 3.0 "bar" "buzz"))
 
-(defvar *small-message-repeats* 100000)
+(defun fosc-encode-small-bundle ()
+  (fosc:encode-bundle 1 '(("/foo" 1 2) ("/bar" 3.0 4.0))))
 
-(defvar *small-message-to-decode*
-  (fosc::encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+(defun osc-encode-small-bundle ()
+  (osc:encode-bundle '(("/foo" 1 2) ("/bar" 3.0 4.0))))
+
+(defvar *small-message*
+  (fosc:encode-message "/foo" 1 2 3 1.0 2.0 3.0 "bar" "buzz"))
+
+(defvar *small-bundle*
+  (fosc:encode-bundle 12345678 '(("/foo" 1 2) ("/bar" 3.0 4.0))))
+
+(defvar *small-nested-bundle*
+  (fosc:encode-bundle 1001 '(("/quux" 1)
+                             (1002 (("/foo" 2 3)))
+                             ("/bar" 4)
+                             (1003 (("/buzz" 5))))))
+
+(defmacro bench (label expr)
+  `(progn (format t ,label)
+          (time (dotimes (i *nrepeats*)
+                  ,expr))))
 
 (defun main ()
-  (format t ";;; FOSC - encode-small-messages~%")
-  (time (dotimes (i *small-message-repeats*)
-          (fosc-encode-small-message)))
+  (bench "FOSC encode small message~%" (fosc-encode-small-message))
+  (bench "OSC  encode small message~%" (osc-encode-small-message))
 
-  (format t ";;; OSC - encode-small-messages~%")
-  (time (dotimes (i *small-message-repeats*)
-          (osc-encode-small-message)))
+  (bench "FOSC encode small bundle~%" (fosc-encode-small-bundle))
+  (bench "OSC  encode small bundle~%" (osc-encode-small-bundle))
 
-  (format t ";;; FOSC - decode-small-messages~%")
-  (time (dotimes (i *small-message-repeats*)
-          (fosc::decode-message *small-message-to-decode*)))
+  (bench "FOSC decode small message" (fosc:decode-message *small-message*))
+  (bench "OSC  decode small message" (osc:decode-message *small-message*))
 
-  (format t ";;; OSC - decode-small-messages~%")
-  (time (dotimes (i *small-message-repeats*)
-          (osc::decode-message *small-message-to-decode*))))
+  (bench "FOSC decode small bundle~%" (fosc:decode-bundle *small-bundle*))
+  (bench "OSC  decode small bundle~%" (osc:decode-bundle *small-bundle*))
+
+  (bench "FOSC decode small nested bundle~%"
+         (fosc:decode-bundle *small-nested-bundle*)))

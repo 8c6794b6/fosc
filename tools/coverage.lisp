@@ -15,8 +15,14 @@
 
 #+sbcl
 (progn
-  (declaim (optimize (sb-cover:store-coverage-data 3)))
-  (asdf:test-system :fosc :force t)
-  (sb-cover:report "/tmp/coverage-sbcl-fosc/"))
+  (asdf:load-system :fosc)
+  (unwind-protect
+       (with-compilation-unit
+           (:policy '(optimize (sb-cover:store-coverage-data 3)))
+         (asdf:load-system :fosc :force (list :fosc))
+         (sb-cover:reset-coverage)
+         (asdf:test-system :fosc)
+         (sb-cover:report "/tmp/coverage-sbcl-fosc/"))
+    (asdf:load-system :fosc :force (list :fosc))))
 
 (cl-user::quit)

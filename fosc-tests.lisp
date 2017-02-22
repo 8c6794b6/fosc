@@ -33,7 +33,7 @@
 (defmacro edb (timetag &rest messages)
   "Encode and decode OSC bundle with given TIMETAG and MESSAGES."
   `(is (osc-equal
-        '(,timetag ,@messages)
+        '(,timetag (,@messages))
         (decode-bundle (encode-bundle ,timetag '(,@messages))))))
 
 
@@ -98,7 +98,10 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
     (encode-bundle 'not-a-time-tag
                    '(("/foo" 1 2 3) ("/bar" 4 5 6))))
   (signals (decode-error)
-    (decode-bundle (encode-message "/foo" 1 2 #(3 4 5)))))
+    (let ((data (encode-message "/foo" 1 2.0)))
+      ;; Manually making message with invalid OSC typetag.
+      (setf (aref data 9) 255)
+      (decode-message data))))
 
 (test bundle
   "Tests for OSC bundles."
@@ -111,6 +114,25 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
        ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)
        ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9))
   (edb #xdeadbeaf ("/foo" 1 2.34 "5") ("/bar" #(6 7) (8 9 10))))
+
+(test nested-bundle
+  (let* ((data1 '(1001 (("/foo" 1 2)
+                        (1002 (("/bar" 3.0 "4")
+                               ("/buzz" (5 6 7))
+                               (1003 (("/quux" 8)
+                                      ("/qux" 9)))))
+                        ("/corge" #(10 11))
+                        (1004 (("/grault" 12)
+                               (1005 (("/plugh" 13)))
+                               ("/blah" 14))))))
+         (data2 (decode-bundle (apply #'encode-bundle data1))))
+    (is (osc-equal data1 data2)))
+  (let* ((data1 '(1001 (("/foo" 1 2)
+                        ("/bar" #(3 4))
+                        (1002 (5 6 7) (8 9))
+                        ("/buzz" 10))))
+         (data2 (decode-bundle (apply #'encode-bundle data1))))
+    (is (osc-equal data1 data2))))
 
 (defun run-fosc-tests ()
   (run-all-tests))

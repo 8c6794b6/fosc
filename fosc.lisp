@@ -3,29 +3,35 @@
 (defpackage :fosc
   (:use #:cl #:fast-io)
   (:export #:encode-message
-           #:decode-message
            #:encode-bundle
-           #:decode-bundle
            #:encode-error
+           #:decode-message
+           #:decode-bundle
            #:decode-error
            #:octets-to-ascii
            #:ascii-to-octets))
 
 (in-package #:fosc)
 
-;; (declaim (optimize (speed 3) (safety 1)))
+;; (declaim (optimize (speed 3) (safety 0) (debug 0)))
 
 #-coverage
 (declaim
  (inline single-float-to-bits bits-to-single-float
          double-float-to-bits bits-to-double-float
          ascii-to-octets octets-to-ascii
-         encode-bundle-elt encode-message-elt encode-one-data
-         encode-data encode-timetag encode-typetag encode-string
-         encode-int64 encode-int32 encode-float32
-         pad-always pad-when-necessary
-         decode-address decode-data decode-int32 decode-float32
-         decode-float64 decode-string decode-blob unpad))
+         pad-always pad-when-necessary unpad hash-bundle-p
+
+         encode-int64 encode-int32 encode-float32 encode-float64
+         encode-string encode-blob encode-timetag encode-typetag
+         encode-one-data encode-data encode-message-elt
+         bundle-in-bundle-p encode-bundle-elt
+
+         decode-int32 decode-int64 decode-float32 decode-float64
+         decode-string decode-blob decode-address decode-data
+         decode-message-elt decode-bundle-elts
+
+         encode-message decode-message))
 
 
 ;;; Conditions, Constants and Vars
@@ -46,12 +52,26 @@
 (define-fosc-error encode-error)
 (define-fosc-error decode-error)
 
-(defvar *hash-bundle*
-  (make-array 8 :element-type '(unsigned-byte 8)
-              :initial-contents '(35 98 117 110 100 108 101 0)))
+(defconstant +hash-bundle+
+  (if (boundp '+hash-bundle+)
+      (symbol-value '+hash-bundle+)
+      (octets-from '(35 98 117 110 100 108 101 0))))
 
 
 ;;; Implementation specific: floats
+
+;;; ABCL, CMUCL, and SBCL uses '(signed-byte 32) for `single-float-to-bits'
+;;; and `bits-to-single-float'. Others uses '(unsigned-byte 32).
+
+#+(or abcl cmucl sbcl)
+(declaim
+ (ftype (function (single-float) (signed-byte 32)) single-float-to-bits)
+ (ftype (function ((signed-byte 32)) (single-float)) bits-to-single-float))
+
+#-(or abcl cmucl sbcl)
+(declaim
+ (ftype (function (single-float) (unsigned-byte 32)) single-float-to-bits)
+ (ftype (function ((unsigned-byte 32)) single-float) bits-to-single-float))
 
 (defun single-float-to-bits (f)
   #+abcl
@@ -84,6 +104,9 @@
   #-(or abcl allegro ccl cmucl sbcl)
   (ieee-floats:decode-float32 bits))
 
+(declaim
+ (ftype (function (double-float) (unsigned-byte 64)) double-float-to-bits))
+
 (defun double-float-to-bits (f)
   #+abcl
   (let ((hi (system:double-float-high-bits f))
@@ -100,6 +123,9 @@
     (ccl::double-float-bits f))
   #-(or abcl ccl sbcl)
   (ieee-floats:encode-float64 f))
+
+(declaim
+ (ftype (function ((unsigned-byte 64)) double-float) bits-to-double-float))
 
 (defun bits-to-double-float (bits)
   #+abcl
@@ -139,7 +165,7 @@
 ;;;  - `sb-ext::string-to-octets'
 ;;;  - `sb-ext:octets-to-string'
 ;;;
-;;; A simple array creation then update the contents approach performed
+;;; Simple "create array, then update the contents" approach performed
 ;;; better than using above implementation specific code except for CMUCL's
 ;;; `stream:octets-to-string'. When the string is known as ASCII, manual
 ;;; array management performed better.
@@ -151,7 +177,7 @@
   (system::convert-string-to-bytes s charset::iso-8859-1)
   #-(or clisp)
   (loop
-     with arr = (make-array (length s) :element-type '(unsigned-byte 8))
+     with arr = (make-octet-vector (length s))
      for c across s
      for i fixnum from 0
      do (setf (aref arr i) (char-code c))
@@ -159,14 +185,14 @@
 
 (defun octets-to-ascii (data)
   "Converts octet vector DATA to ASCII string."
-  (declare (type (array (unsigned-byte 8)) data))
+  (declare (type octet-vector data))
   #+clisp
   (system::convert-string-from-bytes data charset::iso-8859-1)
   #+cmucl
   (stream::octets-to-string data)
   #-(or clisp cmucl)
   (loop
-     with string = (make-string (length data))
+     with string simple-string = (make-string (length data))
      for o across data
      for i fixnum from 0
      do (setf (aref string i) (code-char o))
@@ -177,31 +203,36 @@
 
 (defun pad-always (buf)
   "Pad with zeros for 1 to 4 bytes."
-  (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
+  (let ((n (the octet (mod (buffer-position buf) 4))))
     (dotimes (i (- 4 n))
       (writeu8 0 buf))))
 
 (defun pad-when-necessary (buf)
   "Pad with zeros for 0 to 3 bytes."
-  (let ((n (the fixnum (mod (fast-io::output-buffer-len buf) 4))))
+  (let ((n (the octet (mod (buffer-position buf) 4))))
     (unless (eq 0 n)
       (dotimes (i (- 4 n))
         (writeu8 0 buf)))))
 
 (defun unpad (buf)
-  (let ((n (the fixnum (mod (fast-io::input-buffer-pos buf) 4))))
+  "Removes padded zeros from input buffer BUF."
+  (let ((n (the octet (mod (buffer-position buf) 4))))
     (unless (eq 0 n)
       (dotimes (i (- 4 n))
         (read8 buf)))))
 
+(defun hash-bundle-p (buf)
+  "True if input buffer BUF starts with \"#bundle\"."
+  (loop
+     for expected across +hash-bundle+
+     for u8 = (readu8 buf)
+     always (eq u8 expected)))
+
 
 ;;; Encoding
 
-;;; ABCL, CMUCL, and SBCL uses '(signed-byte 32) for `single-float-to-bits'
-;;; and `bits-to-single-float'. Others uses '(unsigned-byte 32).
-;;;
 ;;; RATIO valus are coerced to single-float in `encode-typetags' and
-;;; `encode-data'.
+;;; `encode-one-data'.
 
 (defun encode-int64 (buf i)
   (declare (type (signed-byte 64) i))
@@ -232,7 +263,7 @@
         (pad-when-necessary buf))))
 
 (defun encode-blob (buf blob)
-  (declare (type (simple-array *) blob))
+  (declare (type octet-vector blob))
   (let ((len (length blob)))
     (write32-be len buf)
     (fast-write-sequence blob buf))
@@ -259,20 +290,23 @@
                   (writeu8-char #\[)
                   (dolist (e d) (enc e))
                   (writeu8-char #\]))
-                 (t (encode-error "unknown typetag ~a" (type-of d))))))
-      (loop for d in data do (enc d) finally (pad-always buf)))))
+                 (t (encode-error "unsupported type ~a" (type-of d))))))
+      (loop
+         for d in data
+         do (enc d)
+         finally (pad-always buf)))))
 
 (defun encode-one-data (buf d)
   (labels ((fn (d)
              (typecase d
                (simple-string (encode-string buf d))
                ((signed-byte 32) (encode-int32 buf d))
-               (single-float (encode-float32 buf d))
-               (ratio (encode-float32 buf (float d 1e0)))
-               ((simple-array (unsigned-byte 8) *) (encode-blob buf d))
-               (array (encode-blob buf (octets-from d)))
                ((signed-byte 64) (encode-int64 buf d))
+               (single-float (encode-float32 buf d))
                (double-float (encode-float64 buf d))
+               (ratio (encode-float32 buf (float d 1e0)))
+               (octet-vector (encode-blob buf d))
+               (array (encode-blob buf (octets-from d)))
                (cons (dolist (e d) (fn e))))))
     (fn d)))
 
@@ -284,11 +318,26 @@
   (encode-typetags buf data)
   (encode-data buf data))
 
+(defun bundle-in-bundle-p (data)
+  ;; OSC bundle has recursive structure, which means that an element of OSC
+  ;; bundle could be an OSC message or an OSC bundle.
+  ;;
+  ;; OSC bundle element should have unsigned-byte 64 in its CAR, and CDR is
+  ;; a list of OSC elements. However, the test logic used here cannot tell
+  ;; OSC message containing an integer command address and payload data
+  ;; consists of nested LIST data.
+  (declare (type list data))
+  (and (numberp (car data))
+       (loop for d in (cadr data) always (consp d))))
+
 (defun encode-bundle-elt (buf data)
   (fast-write-sequence
    (with-fast-output (tmp)
-     (encode-message-elt tmp (car data) (cdr data))
-     (encode-int32 buf (fast-io::output-buffer-len tmp)))
+     (if (bundle-in-bundle-p data)
+         (let ((encoded (encode-bundle (car data) (cadr data))))
+           (fast-write-sequence encoded tmp))
+         (encode-message-elt tmp (car data) (cdr data)))
+     (encode-int32 buf (buffer-position tmp)))
    buf))
 
 
@@ -313,7 +362,7 @@
   (let ((str (octets-to-ascii
               (with-fast-output (out)
                 (loop
-                   for c = (readu8 buf)
+                   for c = (the octet (readu8 buf))
                    while (not (eq c 0))
                    do (writeu8 c out))))))
     (unpad buf)
@@ -328,22 +377,34 @@
     ret))
 
 (defun decode-address (buf)
-  (octets-to-ascii
-   (with-fast-output (out)
-     (loop
-        for c = (the (unsigned-byte 8) (readu8 buf))
-        while (/= c 44)
-        when (/= c 0) do (writeu8 c out)))))
+  ;; Some application uses an integer number instead of OSC address, in
+  ;; particular, SuperCollider. Supporting such case by testing whether the
+  ;; initial value is `#\/' or not. However, the intger number is limited to
+  ;; 16 bit values in current logic.
+  (let ((c (the octet (readu8 buf))))
+    (if (eq 47 c)
+        (octets-to-ascii
+         (with-fast-output (out)
+           (writeu8 c out)
+           (loop
+              for c = (the octet (readu8 buf))
+              while (/= c 44)
+              when (/= c 0)
+              do (writeu8 c out))))
+        (progn
+          (readu8 buf)                  ; Ignore 1 byte.
+          (prog1 (read16-be buf)        ; 16 bit value to return.
+            (readu8 buf))))))           ; Character ',', ignored.
 
 (defun decode-data (buf)
   (let ((tags (loop
-                 for tag = (readu8 buf)
+                 for tag = (the octet (readu8 buf))
                  while (not (eq tag 0))
                  collect tag)))
     (unpad buf)
     (labels ((dec (tags)
                (let ((tag (car tags)))
-                 (ecase tag
+                 (case tag
                    (#.(char-code #\i)
                       (values (decode-int32 buf) (cdr tags)))
                    (#.(char-code #\f)
@@ -356,7 +417,8 @@
                       (values (decode-float64 buf) (cdr tags)))
                    (#.(char-code #\h)
                       (values (decode-int64 buf) (cdr tags)))
-                   (#.(char-code #\[) (fn (cdr tags) nil)))))
+                   (#.(char-code #\[) (fn (cdr tags) nil))
+                   (otherwise (decode-error "unknown tag ~a" tag)))))
              (fn (tags acc)
                (cond
                  ((null tags) (nreverse acc))
@@ -369,13 +431,28 @@
 (defun decode-message-elt (buf)
   (cons (decode-address buf) (decode-data buf)))
 
+(declaim
+ (ftype (function (fast-io::input-buffer) list) decode-bundle-elt))
+
+(defun decode-bundle-elt (buf)
+  (labels ((rec (acc)
+             (let ((len (handler-case (read32-be buf)
+                          (end-of-file () nil))))
+               (if len
+                   (let ((data (make-octet-vector len)))
+                     (fast-read-sequence data buf 0 len)
+                     (rec (cons (decode-bundle data) acc)))
+                   (nreverse acc)))))
+    (let ((timetag (readu64-be buf)))
+      (cons timetag (list (rec nil))))))
+
 
 ;;; Main interfaces
 
 (defun encode-message (address &rest data)
   "Encode OSC message with ADDRESS and DATA.
 
-  (encode-message \"/foo\" 1 2)
+  > (encode-message \"/foo\" 1 2)
   ===> #(47 102 111 111 0 0 0 0 44 105 105 0 0 0 0 1 0 0 0 2)
 "
   (with-fast-output (buf)
@@ -384,7 +461,7 @@
 (defun encode-bundle (timetag data)
   "Encode OSC bundle with TIMETAG and DATA.
 
-TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages.
+TIMETAG is a NTP timestamp value. DATA is a list of OSC bundle element.
 
   > (encode-bundle #xffffffffffffffff '((\"/foo\" 1 2) (\"/bar\" 4)))
   ===> #(35 98 117 110 100 108 101 0 255 255 255 255 255 255 255 255 0 0 0
@@ -394,32 +471,21 @@ TIMETAG is a NTP timestamp value. DATA should be a list of OSC messages.
   (declare (type (unsigned-byte 64) timetag)
            (type list data))
   (with-fast-output (buf)
-    (fast-write-sequence *hash-bundle* buf)
+    (fast-write-sequence +hash-bundle+ buf)
     (encode-timetag buf timetag)
     (dolist (d data)
       (encode-bundle-elt buf d))))
 
 (defun decode-message (data)
   "Decode from octet vector DATA to OSC message."
-  (declare (type (simple-array (unsigned-byte 8)) data))
+  (declare (type octet-vector data))
   (with-fast-input (buf data)
     (decode-message-elt buf)))
 
 (defun decode-bundle (data)
   "Decode from octet vector DATA to OSC bundle."
-  (declare (type (simple-array (unsigned-byte 8)) data))
+  (declare (type octet-vector data))
   (with-fast-input (buf data)
-    (loop
-       for expected across
-         (the (simple-array (unsigned-byte 8)) *hash-bundle*)
-       for u8 = (readu8 buf)
-       unless (eq u8 expected)
-       do (decode-error "not a bundle ~a" data))
-    (let ((timetag (readu64-be buf)))
-      (labels ((encode-one (acc)
-                 (let ((len (handler-case (read32-be buf)
-                              (end-of-file () nil))))
-                   (if (and len (< 0 len))
-                       (encode-one (cons (decode-message-elt buf) acc))
-                       (nreverse acc)))))
-        (cons timetag (encode-one nil))))))
+    (if (hash-bundle-p buf)
+        (decode-bundle-elt buf)
+        (decode-message data))))

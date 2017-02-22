@@ -10,9 +10,6 @@ test-abcl:
 test-ccl:
 	ros -L ccl-bin tools/run-test.ros
 
-# test-clisp:
-# 	clisp -i tools/run-test.ros
-
 test-cmucl:
 	ros -L cmu-bin tools/run-test.ros
 
