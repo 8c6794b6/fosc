@@ -328,6 +328,7 @@
   ;; consists of nested LIST data.
   (declare (type list data))
   (and (numberp (car data))
+       (consp (cadr data))
        (loop for d in (cadr data) always (consp d))))
 
 (defun encode-bundle-elt (buf data)

@@ -132,6 +132,13 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
                         (1002 (5 6 7) (8 9))
                         ("/buzz" 10))))
          (data2 (decode-bundle (apply #'encode-bundle data1))))
+    (is (osc-equal data1 data2)))
+  (let* ((data1 '(15877359437813939200
+                  ((9 "t1" 1000 0 1 "freq" 330)
+                   (9 "t1" 1001 0 1 "freq" 331 "out" 1)
+                   (9 "t1" 1002 0 1 "freq" 332.0)
+                   (52 1801))))
+         (data2 (decode-bundle (apply #'encode-bundle data1))))
     (is (osc-equal data1 data2))))
 
 (defun run-fosc-tests ()
