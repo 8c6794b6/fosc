@@ -24,7 +24,7 @@
 
          encode-int64 encode-int32 encode-float32 encode-float64
          encode-string encode-blob encode-timetag encode-typetag
-         encode-one-data encode-data encode-message-elt
+         encode-typetags encode-one-data encode-data encode-message-elt
          bundle-in-bundle-p encode-bundle-elt
 
          decode-int32 decode-int64 decode-float32 decode-float64
