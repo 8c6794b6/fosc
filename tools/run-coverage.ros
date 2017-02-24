@@ -5,10 +5,10 @@ exec ros -Q -- $0 "$@"
 |#
 
 (ros:ensure-asdf)
-(ql:quickload '(:fosc) :silent t)
+(ql:quickload '(:fast-io) :silent t)
 
 (defpackage :cov
-  (:use :cl :fosc))
+  (:use :cl))
 
 (in-package :cov)
 
@@ -27,24 +27,23 @@ exec ros -Q -- $0 "$@"
   (progn
     (setq ccl:*compile-code-coverage* t)
     (funcall thunk)
-    (ccl:report-coverage "/tmp/coverage-ccl-fosc/index.html")))
+    (ccl:report-coverage "/tmp/coverage-ccl-fosc/index.html")
+    (setq ccl:*compile-code-coverage* nil)))
 
 (defmacro with-coverage (&body body)
   `(call-with-coverage (lambda () ,@body)))
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  ;; XXX: Not working. Use of `unwind-protect' is to recompile the package
-  ;; compiled with code coverage option enabled, though something went wrong
-  ;; and last compiled system insists. Use of *features* to enable/disable
-  ;; inline option may not work well with ASDF.
   (unwind-protect
        (with-coverage
          (asdf:load-system :fosc/tests
                            :force '(:fosc :fosc/tests)
                            :force-not '(:fast-io))
          (asdf:test-system :fosc))
-    ;; (setf *features* (remove :coverage *features*))
+    (setf *features* (remove :coverage *features*))
+    (delete-package :fosc/tests)
+    (delete-package :fosc)
     (asdf:load-system :fosc
                       :force '(:fosc)
                       :force-not '(:fast-io))))

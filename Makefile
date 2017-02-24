@@ -22,10 +22,10 @@ test-sbcl:
 coverage: coverage-ccl coverage-sbcl
 
 coverage-ccl:
-	ros -L ccl-bin tools/coverage.lisp
+	ros -L ccl-bin tools/run-coverage.ros
 
 coverage-sbcl:
-	ros -L sbcl tools/coverage.lisp
+	ros -L sbcl tools/run-coverage.ros
 
 clean:
 	find ./  \
