@@ -6,7 +6,7 @@ simple to use functions for encoding and decoding data format
 in
 [the Open Sound Control 1.0 Specification](http://opensoundcontrol.org/spec-1_0).
 
-The package has been tested with following implementations:
+The package has been tested under Linux x86-64 with following implementations:
 
  - ABCL 1.4.0 (with Java 1.8)
  - Clozure CL 1.11-16635
