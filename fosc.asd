@@ -5,7 +5,7 @@
   :description "Efficient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "MIT"
-  :version "0.9.2"
+  :version "0.9.3"
   :depends-on
   #+(or abcl ccl sbcl)
   (:fast-io)
@@ -24,3 +24,11 @@
                     (load-system :fosc/tests)
                     (funcall (intern (string :run-fosc-tests)
                                      '#:fosc/tests))))
+
+(defsystem :fosc/benchmarks
+  :name "fosc/benchmarks"
+  :depends-on (:fosc :osc :trivial-benchmark)
+  :components ((:file "fosc-benchmarks"))
+  :perform (test-op :after (o c)
+                    (load-system :fosc/benchmarks)
+                    (funcall (intern (string :run) '#:fosc/benchmarks))))

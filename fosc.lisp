@@ -112,16 +112,21 @@
   (let ((hi (system:double-float-high-bits f))
         (lo (system:double-float-low-bits f)))
     (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
+  #+ccl
+  (multiple-value-call
+      (lambda (hi lo)
+        (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
+    (ccl::double-float-bits f))
+  #+cmucl
+  (multiple-value-call
+      (lambda (hi lo)
+        (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
+    (kernel:double-float-bits f))
   #+sbcl
   (let ((hi (sb-kernel:double-float-high-bits f))
         (lo (sb-kernel:double-float-low-bits f)))
     (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
-  #+ccl
-  (multiple-value-call
-      #'(lambda (hi lo)
-          (dpb lo (byte 32 0) (dpb hi (byte 32 32) 0)))
-    (ccl::double-float-bits f))
-  #-(or abcl ccl sbcl)
+  #-(or abcl ccl cmucl sbcl)
   (ieee-floats:encode-float64 f))
 
 (declaim
