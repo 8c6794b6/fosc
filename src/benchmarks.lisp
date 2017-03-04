@@ -1,10 +1,10 @@
 ;;; fosc-bench.lisp - Benchmark for fosc package.
 
-(benchmark:define-benchmark-package :fosc/benchmarks
+(benchmark:define-benchmark-package :fosc-benchmarks
   (:use #:cl)
   (:export #:run))
 
-(in-package #:fosc/benchmarks)
+(in-package #:fosc-benchmarks)
 
 
 ;;; Benchmarks
@@ -56,7 +56,7 @@
 ;;; Running and plotting
 
 (defun relative-pathname (path)
-  (asdf:system-relative-pathname :fosc/benchmarks path))
+  (asdf:system-relative-pathname :fosc-benchmarks path))
 
 (defparameter *datadir*
   (relative-pathname #p"data/"))
@@ -104,7 +104,7 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader;
        (uiop:process-info-output p)))))
 
 (defun run ()
-  (let ((results-table (run-package-benchmarks :package :fosc/benchmarks
+  (let ((results-table (run-package-benchmarks :package :fosc-benchmarks
                                                :verbose t)))
     (flet ((get-total (name which)
              (let* ((names (find name *benchmarks* :key #'car))

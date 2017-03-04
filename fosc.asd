@@ -1,4 +1,4 @@
-;;;; fosc.asd
+;;;; fosc.asd - ASD file for main codes
 
 (defsystem #:fosc
   :name "fosc"
@@ -11,24 +11,8 @@
   (:fast-io)
   #-(or abcl ccl sbcl)
   (:fast-io :ieee-floats)
+  :pathname "src"
   :components ((:file "fosc"))
   :perform (test-op :after (o c)
-                    (operate 'load-op :fosc/tests)
-                    (operate 'test-op :fosc/tests)))
-
-(defsystem #:fosc/tests
-  :name "fosc/tests"
-  :depends-on (:fosc :fiveam)
-  :components ((:file "fosc-tests"))
-  :perform (test-op :after (o c)
-                    (load-system :fosc/tests)
-                    (funcall (intern (string :run-fosc-tests)
-                                     '#:fosc/tests))))
-
-(defsystem #:fosc/benchmarks
-  :name "fosc/benchmarks"
-  :depends-on (:fosc :osc :trivial-benchmark)
-  :components ((:file "fosc-benchmarks"))
-  :perform (test-op :after (o c)
-                    (load-system :fosc/benchmarks)
-                    (funcall (intern (string :run) '#:fosc/benchmarks))))
+                    (operate 'load-op :fosc-tests)
+                    (operate 'test-op :fosc-tests)))

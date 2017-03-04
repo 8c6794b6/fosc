@@ -36,12 +36,12 @@ exec ros -Q -- $0 "$@"
   (unwind-protect
        (with-coverage
          (push :coverage *features*)
-         (asdf:load-system :fosc/tests
-                           :force '(:fosc :fosc/tests)
+         (asdf:load-system :fosc
+                           :force '(:fosc :fosc-tests)
                            :force-not '(:fast-io))
          (asdf:test-system :fosc))
     (setf *features* (remove :coverage *features*))
-    (delete-package :fosc/tests)
+    (delete-package :fosc-tests)
     (delete-package :fosc)
     (asdf:load-system :fosc
                       :force '(:fosc)

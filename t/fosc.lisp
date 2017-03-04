@@ -1,10 +1,10 @@
 ;;;; fosc-tests.lisp -- Tests for fosc
 
-(defpackage :fosc/tests
+(defpackage :fosc-tests
   (:use #:cl #:fosc #:fiveam)
   (:export #:run-fosc-tests))
 
-(in-package #:fosc/tests)
+(in-package #:fosc-tests)
 
 ;;; Auxiliary
 

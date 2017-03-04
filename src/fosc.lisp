@@ -430,8 +430,10 @@
                  ((null tags) (nreverse acc))
                  ((eq (car tags) #.(char-code #\]))
                   (values (nreverse acc) (cdr tags)))
-                 (t (multiple-value-bind (elem rest) (dec tags)
-                      (fn rest (cons elem acc)))))))
+                 (t (multiple-value-call
+                        (lambda (elem rest)
+                          (fn rest (cons elem acc)))
+                      (dec tags))))))
       (fn tags nil))))
 
 (defun decode-message-elt (buf)
