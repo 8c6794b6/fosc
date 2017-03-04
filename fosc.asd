@@ -16,7 +16,7 @@
                     (operate 'load-op :fosc/tests)
                     (operate 'test-op :fosc/tests)))
 
-(defsystem :fosc/tests
+(defsystem #:fosc/tests
   :name "fosc/tests"
   :depends-on (:fosc :fiveam)
   :components ((:file "fosc-tests"))
@@ -25,7 +25,7 @@
                     (funcall (intern (string :run-fosc-tests)
                                      '#:fosc/tests))))
 
-(defsystem :fosc/benchmarks
+(defsystem #:fosc/benchmarks
   :name "fosc/benchmarks"
   :depends-on (:fosc :osc :trivial-benchmark)
   :components ((:file "fosc-benchmarks"))

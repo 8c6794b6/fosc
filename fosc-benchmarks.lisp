@@ -1,10 +1,10 @@
 ;;; fosc-bench.lisp - Benchmark for fosc package.
 
 (benchmark:define-benchmark-package :fosc/benchmarks
-  (:use :cl)
-  (:export :run))
+  (:use #:cl)
+  (:export #:run))
 
-(in-package :fosc/benchmarks)
+(in-package #:fosc/benchmarks)
 
 
 ;;; Benchmarks
@@ -12,6 +12,12 @@
 (defvar *nrepeats* 100000)
 
 (defparameter *benchmarks* nil)
+
+(defvar *small-message*
+  (fosc:encode-message "/foo" 1 2 3.45 6.78 "9" "10"))
+
+(defvar *small-bundle*
+  (fosc:encode-bundle 12345678 '(("/foo" 1 2) ("/bar" 3.0 4.0))))
 
 (defmacro bench (name fosc-expr osc-expr)
   (labels ((make-bench-name (which)
@@ -29,12 +35,6 @@
                *benchmarks*)
          ,(make-benchmark fosc-name fosc-expr)
          ,(make-benchmark osc-name osc-expr)))))
-
-(defvar *small-message*
-  (fosc:encode-message "/foo" 1 2 3.45 6.78 "9" "10"))
-
-(defvar *small-bundle*
-  (fosc:encode-bundle 12345678 '(("/foo" 1 2) ("/bar" 3.0 4.0))))
 
 (bench encode-message
   (fosc:encode-message "/foo" 1 2 3.45 6.78 "9" "10")
@@ -106,7 +106,7 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader;
 (defun run ()
   (let ((results-table (run-package-benchmarks :package :fosc/benchmarks
                                                :verbose t)))
-    (flet ((get-total (which name)
+    (flet ((get-total (name which)
              (let* ((names (find name *benchmarks* :key #'car))
                     (bench-name (getf (cdr names) which))
                     (results (gethash bench-name results-table))
@@ -119,7 +119,7 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader;
                              :if-exists :supersede)
           (format tsv "benchmark fosc osc~%")
           (dolist (name (nreverse (mapcar #'car *benchmarks*)))
-            (let ((fosc (get-total :fosc name))
-                  (osc (get-total :osc name)))
+            (let ((fosc (get-total name :fosc))
+                  (osc (get-total name :osc)))
               (format tsv "~16a ~3$ ~3$~%" name fosc osc))))
         (plot-png)))))
