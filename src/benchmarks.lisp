@@ -64,9 +64,10 @@
 (defparameter *lisp-name*
   #+sbcl "sbcl"
   #+ccl "ccl"
-  #+cmucl "cmucl"
-  #-(or sbcl ccl cmucl) nil
+  #-(or sbcl ccl) nil
   "Shortened Common Lisp implementation name.")
+
+(defvar *max-y* 0)
 
 (defun out-tsv ()
   "Output file for dumping benchmark result as TSV data."
@@ -82,7 +83,7 @@
 set terminal pngcairo enhanced font 'DejaVuSans' size 720,480;
 set style data histogram;
 set style histogram cluster gap 1;
-set style fill solid 0.5 noborder;
+set style fill solid 0.5;
 set ylabel 'Real-time in seconds (lower is better)' font ',10';
 set xtics scale 0 font ',8';
 set ytics scale 0 font ',9';
@@ -90,14 +91,25 @@ set grid y;
 set boxwidth 0.8;
 set key nobox font ',9';
 set yrange [0:*];
+gapsize=1;
+startcol=2;
+endcol=3;
+ncol=endcol-startcol+1;
+boxwidth=1./(gapsize+ncol);
 set title '~a ~a';
 set output '~a';
-plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader;
+plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader,
+     for [col=2:3] '~a'
+     using (column(0)-1+boxwidth*(col-startcol+gapsize/2+1)-0.5):
+           (column(col)+~$):col notitle
+     with labels font ',9';
 "
            (lisp-implementation-type)
            (lisp-implementation-version)
            (namestring out-png)
-           (namestring (out-tsv)))))
+           (namestring (out-tsv))
+           (namestring (out-tsv))
+           (/ (ceiling *max-y*) 28))))
     (let ((p (uiop:launch-program (list "gnuplot" "-e" expr)
                                   :output :stream)))
       (alexandria:read-stream-content-into-string
@@ -121,5 +133,6 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader;
           (dolist (name (nreverse (mapcar #'car *benchmarks*)))
             (let ((fosc (get-total name :fosc))
                   (osc (get-total name :osc)))
+              (setf *max-y* (max *max-y* (max fosc osc)))
               (format tsv "~16a ~3$ ~3$~%" name fosc osc))))
         (plot-png)))))
