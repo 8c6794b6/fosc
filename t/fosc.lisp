@@ -142,4 +142,4 @@ non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
     (is (osc-equal data1 data2))))
 
 (defun run-fosc-tests ()
-  (run-all-tests))
+  (run! 'fosc-suite))

@@ -1,10 +1,9 @@
 #!/bin/sh
 #|-*- mode:lisp -*-|#
-#| Script to run FOSC tests.
+#| Script to run asdf:test-system for fosc systems.
 exec ros -Q -- $0 "$@"
 |#
 (ros:ensure-asdf)
-(ql:quickload :fosc)
 
 (defpackage :ros.script.run-test
   (:use :cl))
@@ -12,7 +11,9 @@ exec ros -Q -- $0 "$@"
 (in-package :ros.script.run-test)
 
 (defun main (&rest argv)
-  (declare (ignore argv))
-  (asdf:test-system :fosc))
+  (let ((system (if argv
+                    (apply #'concatenate 'string "fosc-" argv)
+                    "fosc")))
+    (asdf:operate :test-op system)))
 
 ;;; vim: set ft=lisp lisp:
