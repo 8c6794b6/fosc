@@ -20,7 +20,7 @@ install:
   - git clone https://github.com/fukamachi/cl-coveralls ~/lisp/cl-coveralls
 
 script:
-  - if [ $LISP == 'sbcl-bin' ];
+  - if [[ $LISP == 'sbcl-bin' ]];
     then
       ros -s cl-coveralls -s fiveam -s fast-io
           -e '(setf fiveam:*on-error* t
@@ -31,7 +31,7 @@ script:
                       (uiop:quit -1)))'
           -e '(pushnew :coverage *features*)'
           -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
-                (asdf:test-system :fosc))'
+                (asdf:test-system :fosc))';
     else
       ros -s fiveam -s fast-io
           -e '(setf fiveam:*on-error* t
@@ -40,5 +40,5 @@ script:
                     (lambda (c h)
                       (declare (ignore c h))
                       (uiop:quit -1)))'
-          -e '(asdf:test-system :fosc)'
-    fi;
+          -e '(asdf:test-system :fosc)';
+    fi
