@@ -2,8 +2,8 @@ fosc - Efficient OSC for Common Lisp
 ====================================
 
 [![Build status](https://travis-ci.org/8c6794b6/fosc.svg?branch=master)](https://travis-ci.org/8c6794b6/fosc)
-[![Coverage Status](https://coveralls.io/repos/github/8c6794b6/fosc/badge.svg?branch=master)](https://coveralls.io/github/8c6794b6/fosc?branch=master&version=0.9.5)
-[![Quicklisp dist](http://quickdocs.org/badge/fosc.svg)](http://quickdoc.org/fosc/)
+[![Coverage Status](https://coveralls.io/repos/github/8c6794b6/fosc/badge.svg?branch=master)](https://coveralls.io/github/8c6794b6/fosc?branch=master)
+[![Quicklisp dist](http://quickdocs.org/badge/fosc.svg)](http://quickdocs.org/fosc/)
 
 Overview
 --------
