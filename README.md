@@ -8,8 +8,8 @@ fosc - Efficient OSC for Common Lisp
 Overview
 --------
 
-The fosc package aims to provide limited, though efficient, portable and
-simple to use functions for encoding and decoding data format
+The fosc package provides limited, though efficient, portable and simple to
+use functions for encoding and decoding data format
 in
 [the Open Sound Control 1.0 Specification](http://opensoundcontrol.org/spec-1_0).
 
@@ -69,8 +69,7 @@ Below
 are
 [micro benchmark](https://github.com/8c6794b6/fosc/blob/master/tools/benchmarks.lisp) results
 which compare the performance of fosc and osc-20150923-git available in
-quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64. Actual performance
-of fosc shall vary across application code and environment.
+quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64.
 
 ![CCL](https://raw.githubusercontent.com/8c6794b6/fosc/master/images/ccl.png)
 
@@ -82,7 +81,7 @@ Limitations
 
 * `RATIO` values are always coerced to `SINGLE-FLOAT`.
 
-* In some Common Lisp implementations, may show performance worse than
+* Some Common Lisp implementations may show performance worse than
   `cl-osc` package. In particular, may show poor performance in
   implementations without efficient IEEE 754 floating point number to/from
   octet array conversion.
