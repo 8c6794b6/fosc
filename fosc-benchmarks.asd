@@ -3,7 +3,7 @@
 (defsystem :fosc-benchmarks
   :name "fosc-benchmarks"
   :depends-on (:fosc :osc :trivial-benchmark)
-  :pathname "src"
+  :pathname "tools"
   :components ((:file "benchmarks"))
   :perform (test-op :after (o c)
                     (load-system :fosc-benchmarks)

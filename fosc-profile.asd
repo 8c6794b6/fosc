@@ -4,7 +4,7 @@
 (defsystem #:fosc-profile
   :name "fosc-profile"
   :depends-on (:fosc)
-  :pathname "src"
+  :pathname "tools"
   :components ((:file "profile-sbcl"))
   :perform (test-op :after (o c)
                     (load-system :fosc-profile)
