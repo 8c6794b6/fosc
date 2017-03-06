@@ -4,6 +4,9 @@ fosc - Efficient OSC for Common Lisp
 [![Build status](https://travis-ci.org/8c6794b6/fosc.svg?branch=master)](https://travis-ci.org/8c6794b6/fosc)
 [![Coverage Status](https://coveralls.io/repos/github/8c6794b6/fosc/badge.svg?branch=master)](https://coveralls.io/github/8c6794b6/fosc?branch=master)
 
+Overview
+--------
+
 The fosc package aims to provide limited, though efficient, portable and
 simple to use functions for encoding and decoding data format
 in
@@ -57,6 +60,22 @@ FOSC> (encode-bundle 1234 '(("/foo" 1.23 4)
 FOSC> (decode-bundle *)
 (1234 (("/foo" 1.23 4) (5678 (("/bar" #(5 6) (7 8)))) ("/buzz" 9.0 10.0)))
 ```
+
+Benchmarks
+----------
+
+Actual performance varies across application code and environment.
+
+Below
+are
+[micro benchmark](https://github.com/8c6794b6/fosc/blob/master/tools/benchmarks.lisp) results
+which compares the performance of fosc and osc-20150923-git available in
+quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64.
+
+![CCL](https://raw.githubusercontent.com/8c6794b6/fosc/master/images/ccl.png)
+
+![SBCL](https://raw.githubusercontent.com/8c6794b6/fosc/master/images/sbcl.png)
+
 
 Limitations
 -----------
