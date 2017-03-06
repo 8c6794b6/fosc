@@ -15,7 +15,6 @@
 
 ;; (declaim (optimize (speed 3) (safety 0) (debug 0)))
 
-;; #-coverage
 (eval-when (:compile-toplevel)
   (unless (find :coverage *features*)
     (declaim

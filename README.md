@@ -15,8 +15,8 @@ The package has been tested under Linux x86-64 with following implementations:
  - Clozure CL 1.11-16635
  - CMUCL 21b
  - ECL 16.1.2
- - GNU CLISP 2.49
- - SBCL 1.3.14
+ - GNU CLISP 2.49 (requires ASDF >= 3.1)
+ - SBCL 1.3.15
 
 
 Examples
