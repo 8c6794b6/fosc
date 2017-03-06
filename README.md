@@ -2,7 +2,8 @@ fosc - Efficient OSC for Common Lisp
 ====================================
 
 [![Build status](https://travis-ci.org/8c6794b6/fosc.svg?branch=master)](https://travis-ci.org/8c6794b6/fosc)
-[![Coverage Status](https://coveralls.io/repos/github/8c6794b6/fosc/badge.svg?branch=master)](https://coveralls.io/github/8c6794b6/fosc?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/8c6794b6/fosc/badge.svg?branch=master)](https://coveralls.io/github/8c6794b6/fosc?branch=master&version=0.9.5)
+[![Quicklisp dist](http://quickdocs.org/badge/fosc.svg)](http://quickdoc.org/fosc/)
 
 Overview
 --------
@@ -67,9 +68,9 @@ Benchmarks
 Below
 are
 [micro benchmark](https://github.com/8c6794b6/fosc/blob/master/tools/benchmarks.lisp) results
-which compares the performance of fosc and osc-20150923-git available in
-quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64.  Actual performance
-varies across application code and environment.
+which compare the performance of fosc and osc-20150923-git available in
+quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64. Actual performance
+of fosc shall vary across application code and environment.
 
 ![CCL](https://raw.githubusercontent.com/8c6794b6/fosc/master/images/ccl.png)
 
