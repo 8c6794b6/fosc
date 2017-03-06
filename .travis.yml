@@ -11,8 +11,6 @@ env:
   matrix:
     - LISP=abcl
     - LISP=ccl-bin
-    - LISP=cmu-bin
-    - LISP=ecl
     - LISP=sbcl-bin COVERALLS=true
 
 install:
