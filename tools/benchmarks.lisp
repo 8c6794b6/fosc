@@ -110,10 +110,16 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader,
            (namestring (out-tsv))
            (namestring (out-tsv))
            (/ (ceiling *max-y*) 28))))
-    (let ((p (uiop:launch-program (list "gnuplot" "-e" expr)
-                                  :output :stream)))
-      (alexandria:read-stream-content-into-string
-       (uiop:process-info-output p)))))
+    ;; Workaround for code coverage with cl-coverall and roswell. When
+    ;; "COVERALLS" envvar is set, ignore the plottings done with gnuplot.
+    (let* ((thunk (if (uiop:getenv "COVERALLS")
+                      (lambda () nil)
+                      (lambda ()
+                        (uiop:launch-program (list "gnuplot" "-e" expr)
+                                             :output :stream))))
+           (p (funcall thunk)))
+      (and p (alexandria:read-stream-content-into-string
+              (uiop:process-info-output p))))))
 
 (defun run ()
   (let ((results-table (run-package-benchmarks :package :fosc-benchmarks

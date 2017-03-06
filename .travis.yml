@@ -14,7 +14,6 @@ script:
   - ros -s cl-coveralls
         -s fiveam
         -s fast-io
-        -s uiop/launch-program
         -e '(setf fiveam:*debug-on-error* t
                   fiveam:*debug-on-failure* t)'
         -e '(setf *debugger-hook*
