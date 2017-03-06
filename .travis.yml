@@ -11,6 +11,7 @@ install:
 
 script:
   - cl -l fiveam
+       -l fast-io
        -e '(setf fiveam:*debug-on-error* t
                  fiveam:*debug-on-failure* t)'
        -e '(setf *debugger-hook*
