@@ -11,15 +11,15 @@ install:
   - git clone https://github.com/fukamachi/cl-coveralls ~/lisp/cl-coveralls
 
 script:
-  - ros -s fiveam
+  - ros -s cl-coveralls
+        -s fiveam
         -s fast-io
-        -s cl-coveralls
+        -s uiop
         -e '(setf fiveam:*debug-on-error* t
                   fiveam:*debug-on-failure* t)'
         -e '(setf *debugger-hook*
                   (lambda (c h)
                     (declare (ignore c h))
                     (uiop:quit -1)))'
-        -e '(or (coveralls:with-coveralls (:exclude (list "t" "tools"))
-                  (asdf:test-system :fosc))
-                (uiop:exit -1))'
+        -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
+                  (asdf:test-system :fosc))'
