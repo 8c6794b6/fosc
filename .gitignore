@@ -1,0 +1,9 @@
+*~
+*.fas
+*.fasl
+*.lib
+*.lis
+*.lx32fsl
+*.lx64fsl
+
+system-index.txt
