@@ -15,23 +15,25 @@
 
 ;; (declaim (optimize (speed 3) (safety 0) (debug 0)))
 
-#-coverage
-(declaim
- (inline single-float-to-bits bits-to-single-float
-         double-float-to-bits bits-to-double-float
-         ascii-to-octets octets-to-ascii
-         pad-always pad-when-necessary unpad hash-bundle-p
+;; #-coverage
+(eval-when (:compile-toplevel)
+  (unless (find :coverage *features*)
+    (declaim
+     (inline single-float-to-bits bits-to-single-float
+             double-float-to-bits bits-to-double-float
+             ascii-to-octets octets-to-ascii
+             pad-always pad-when-necessary unpad hash-bundle-p
 
-         encode-int64 encode-int32 encode-float32 encode-float64
-         encode-string encode-blob encode-timetag encode-typetag
-         encode-typetags encode-one-data encode-data encode-message-elt
-         bundle-in-bundle-p encode-bundle-elt
+             encode-int64 encode-int32 encode-float32 encode-float64
+             encode-string encode-blob encode-timetag encode-typetag
+             encode-typetags encode-one-data encode-data encode-message-elt
+             bundle-in-bundle-p encode-bundle-elt
 
-         decode-int32 decode-int64 decode-float32 decode-float64
-         decode-string decode-blob decode-address decode-data
-         decode-message-elt decode-bundle-elts
+             decode-int32 decode-int64 decode-float32 decode-float64
+             decode-string decode-blob decode-address decode-data
+             decode-message-elt decode-bundle-elts
 
-         encode-message decode-message))
+             encode-message decode-message))))
 
 
 ;;; Conditions, Constants and Vars
