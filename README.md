@@ -64,13 +64,12 @@ FOSC> (decode-bundle *)
 Benchmarks
 ----------
 
-Actual performance varies across application code and environment.
-
 Below
 are
 [micro benchmark](https://github.com/8c6794b6/fosc/blob/master/tools/benchmarks.lisp) results
 which compares the performance of fosc and osc-20150923-git available in
-quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64.
+quicklisp-2017-02-27, for CCL and SBCL under Linux X86-64.  Actual performance
+varies across application code and environment.
 
 ![CCL](https://raw.githubusercontent.com/8c6794b6/fosc/master/images/ccl.png)
 
