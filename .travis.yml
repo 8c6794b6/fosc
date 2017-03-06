@@ -3,19 +3,22 @@ sudo: required
 
 env:
   matrix:
-    - LISP=sbcl
+    - LISP=sbcl COVERALLS=true
     - LISP=ccl
 
 install:
   - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | sh;
+  - git clone https://github.com/fukamachi/cl-coveralls ~/lisp/cl-coveralls
 
 script:
   - cl -l fiveam
        -l fast-io
+       -l cl-coveralls
        -e '(setf fiveam:*debug-on-error* t
                  fiveam:*debug-on-failure* t)'
        -e '(setf *debugger-hook*
                  (lambda (c h)
                    (declare (ignore c h))
                    (uiop:quit -1)))'
-       -e '(asdf:test-system :fosc)'
+       -e '(coveralls:with-coveralls (:exclude (list "t"))
+             (asdf:test-system :fosc))'
