@@ -1,6 +1,8 @@
 fosc - Efficient OSC for Common Lisp
 ====================================
 
+[![Build status](https://travis-ci.org/8c6794b6/fosc.svg?branch=master)](https://travis-ci.org/8c6794b6/fosc)
+
 The fosc package aims to provide limited, though efficient, portable and
 simple to use functions for encoding and decoding data format
 in
