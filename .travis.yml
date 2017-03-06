@@ -20,15 +20,25 @@ install:
   - git clone https://github.com/fukamachi/cl-coveralls ~/lisp/cl-coveralls
 
 script:
-  - ros -s cl-coveralls
-        -s fiveam
-        -s fast-io
-        -e '(setf fiveam:*on-error* t
-                  fiveam:*on-failure* t)'
-        -e '(setf *debugger-hook*
-                  (lambda (c h)
-                    (declare (ignore c h))
-                    (uiop:quit -1)))'
-        -e '(pushnew :coverage *features*)'
-        -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
-              (asdf:test-system :fosc))'
+  - if [ $LISP == 'sbcl-bin' ];
+    then
+      ros -s cl-coveralls -s fiveam -s fast-io
+          -e '(setf fiveam:*on-error* t
+                    fiveam:*on-failure* t)'
+          -e '(setf *debugger-hook*
+                    (lambda (c h)
+                      (declare (ignore c h))
+                      (uiop:quit -1)))'
+          -e '(pushnew :coverage *features*)'
+          -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
+                (asdf:test-system :fosc))'
+    else
+      ros -s fiveam -s fast-io
+          -e '(setf fiveam:*on-error* t
+                    fiveam:*on-failure* t)'
+          -e '(setf *debugger-hook*
+                    (lambda (c h)
+                      (declare (ignore c h))
+                      (uiop:quit -1)))'
+          -e '(asdf:test-system :fosc)'
+    fi;
