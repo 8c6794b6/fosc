@@ -1,10 +1,19 @@
 language: lisp
 sudo: required
 
+addons:
+  apt:
+    packages:
+      - libc6-i386
+      - openjdk-7-jre
+
 env:
   matrix:
+    - LISP=abcl
+    - LISP=ccl-bin
+    - LISP=cmu-bin
+    - LISP=ecl
     - LISP=sbcl-bin COVERALLS=true
-    - LISP=ccl
 
 install:
   - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
