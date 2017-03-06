@@ -74,7 +74,7 @@
   (and *lisp-name*
        (relative-pathname (format nil "data/~a.tsv" *lisp-name*))))
 
-(eval-when (:compile-toplevel)
+(eval-when (:compile-toplevel :load-toplevel)
   ;; Workaround for code coverage with cl-coverall and roswell. When
   ;; "COVERALLS" envvar is set, ignore the plottings done with gnuplot.
   (if (uiop:getenv "COVERALLS")
