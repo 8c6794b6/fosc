@@ -74,12 +74,17 @@
   (and *lisp-name*
        (relative-pathname (format nil "data/~a.tsv" *lisp-name*))))
 
-(defun plot-png ()
-  (let* ((out-png (relative-pathname
-                   (format nil "data/~a.png" *lisp-name*)))
-         (expr
-          (format
-           nil "
+(eval-when (:compile-toplevel)
+  ;; Workaround for code coverage with cl-coverall and roswell. When
+  ;; "COVERALLS" envvar is set, ignore the plottings done with gnuplot.
+  (if (uiop:getenv "COVERALLS")
+      (defun plot-png () nil)
+      (defun plot-png ()
+        (let* ((out-png (relative-pathname
+                         (format nil "data/~a.png" *lisp-name*)))
+               (expr
+                (format
+                 nil "
 set terminal pngcairo enhanced font 'DejaVuSans' size 720,480;
 set style data histogram;
 set style histogram cluster gap 1;
@@ -104,22 +109,16 @@ plot for [col=2:3] '~a' using col:xticlabels(1) title columnheader,
            (column(col)+~$):col notitle
      with labels font ',9';
 "
-           (lisp-implementation-type)
-           (lisp-implementation-version)
-           (namestring out-png)
-           (namestring (out-tsv))
-           (namestring (out-tsv))
-           (/ (ceiling *max-y*) 28))))
-    ;; Workaround for code coverage with cl-coverall and roswell. When
-    ;; "COVERALLS" envvar is set, ignore the plottings done with gnuplot.
-    (let* ((thunk (if (uiop:getenv "COVERALLS")
-                      (lambda () nil)
-                      (lambda ()
-                        (uiop:launch-program (list "gnuplot" "-e" expr)
-                                             :output :stream))))
-           (p (funcall thunk)))
-      (and p (alexandria:read-stream-content-into-string
-              (uiop:process-info-output p))))))
+                 (lisp-implementation-type)
+                 (lisp-implementation-version)
+                 (namestring out-png)
+                 (namestring (out-tsv))
+                 (namestring (out-tsv))
+                 (/ (ceiling *max-y*) 28))))
+          (let ((p (uiop:launch-program (list "gnuplot" "-e" expr)
+                                        :output :stream)))
+            (alexandria:read-stream-content-into-string
+             (uiop:process-info-output p)))))))
 
 (defun run ()
   (let ((results-table (run-package-benchmarks :package :fosc-benchmarks

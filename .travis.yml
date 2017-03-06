@@ -21,4 +21,4 @@ script:
                     (declare (ignore c h))
                     (uiop:quit -1)))'
         -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
-                  (asdf:test-system :fosc))'
+              (asdf:test-system :fosc))'
