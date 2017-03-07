@@ -33,16 +33,19 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (unwind-protect
-       (with-coverage
-         (push :coverage *features*)
-         (asdf:load-system :fosc
-                           :force '(:fosc :fosc-tests)
-                           :force-not '(:fast-io))
-         (asdf:test-system :fosc))
-    (setf *features* (remove :coverage *features*))
-    (delete-package :fosc-tests)
-    (delete-package :fosc)
-    (asdf:load-system :fosc
-                      :force '(:fosc)
-                      :force-not '(:fast-io))))
+  (let ((force-not '(:fast-io :fiveam
+                     :trivial-backtrace
+                     :net.didierverna.asdf-flv)))
+    (unwind-protect
+         (with-coverage
+           (push :coverage *features*)
+           (asdf:load-system :fosc
+                             :force '(:fosc :fosc-tests)
+                             :force-not force-not)
+           (asdf:test-system :fosc))
+      (setf *features* (remove :coverage *features*))
+      (delete-package :fosc-tests)
+      (delete-package :fosc)
+      (asdf:load-system :fosc
+                        :force '(:fosc)
+                        :force-not force-not))))
