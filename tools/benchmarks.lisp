@@ -64,7 +64,8 @@
 (defparameter *lisp-name*
   #+sbcl "sbcl"
   #+ccl "ccl"
-  #-(or sbcl ccl) nil
+  #+cmucl "cmu"
+  #-(or sbcl ccl cmucl) nil
   "Shortened Common Lisp implementation name.")
 
 (defvar *max-y* 0)
@@ -80,7 +81,7 @@
          (expr
           (format
            nil "
-set terminal pngcairo enhanced font 'DejaVuSans' size 720,480;
+set terminal pngcairo enhanced font 'DejaVuSans' size 840,480;
 set style data histogram;
 set style histogram cluster gap 1;
 set style fill solid 0.5;
