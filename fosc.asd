@@ -1,11 +1,11 @@
-;;;; fosc.asd - ASD file for main codes
+;;;; fosc.asd - ASD file for fosc package
 
 (defsystem #:fosc
   :name "fosc"
   :description "Efficient OSC"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "MIT"
-  :version "0.9.5"
+  :version "0.9.6"
   :depends-on
   #+(or abcl ccl sbcl)
   (:fast-io)

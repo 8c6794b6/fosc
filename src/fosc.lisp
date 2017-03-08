@@ -15,7 +15,7 @@
 
 ;; (declaim (optimize (speed 3) (safety 0) (debug 0)))
 
-(eval-when (:compile-toplevel)
+(eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find :coverage *features*)
     (declaim
      (inline single-float-to-bits bits-to-single-float
@@ -30,7 +30,7 @@
 
              decode-int32 decode-int64 decode-float32 decode-float64
              decode-string decode-blob decode-address decode-data
-             decode-message-elt decode-bundle-elts
+             decode-message-elt get-length
 
              encode-message decode-message))))
 
@@ -389,13 +389,13 @@
   ;; initial value is `#\/' or not. However, the intger number is limited to
   ;; 16 bit values in current logic.
   (let ((c (the octet (readu8 buf))))
-    (if (eq 47 c)
+    (if (eq #.(char-code #\/) c)
         (octets-to-ascii
          (with-fast-output (out)
            (writeu8 c out)
            (loop
               for c = (the octet (readu8 buf))
-              while (/= c 44)
+              while (/= c #.(char-code #\,))
               when (/= c 0)
               do (writeu8 c out))))
         (progn
@@ -443,10 +443,24 @@
 (declaim
  (ftype (function (fast-io::input-buffer) list) decode-bundle-elt))
 
+(defun get-length (buf)
+  ;; After reading the first byte, assuming three more bytes exist in the
+  ;; given input buffer.
+  (declare (optimize speed))
+  (let ((ret (the (unsigned-byte 32) 0))
+        (b0 (fast-read-byte buf nil nil)))
+    (if b0
+        (progn
+          (setf (ldb (byte 8 24) ret) b0)
+          (setf (ldb (byte 8 16) ret) (readu8 buf))
+          (setf (ldb (byte 8 8) ret) (readu8 buf))
+          (setf (ldb (byte 8 0) ret) (readu8 buf))
+          ret)
+        nil)))
+
 (defun decode-bundle-elt (buf)
   (labels ((rec (acc)
-             (let ((len (handler-case (read32-be buf)
-                          (end-of-file () nil))))
+             (let ((len (get-length buf)))
                (if len
                    (let ((data (make-octet-vector len)))
                      (fast-read-sequence data buf 0 len)
