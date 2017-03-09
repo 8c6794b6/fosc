@@ -14,5 +14,5 @@
   :pathname "src"
   :components ((:file "fosc"))
   :perform (test-op :after (o c)
-                    (operate 'load-op :fosc-tests)
-                    (operate 'test-op :fosc-tests)))
+                    (operate 'load-op :fosc-test)
+                    (operate 'test-op :fosc-test)))

@@ -1,10 +1,10 @@
-;;;; fosc-tests.lisp -- Tests for fosc
+;;;; fosc-test.lisp -- Tests for fosc
 
-(defpackage :fosc-tests
+(defpackage :fosc-test
   (:use #:cl #:fosc #:fiveam)
-  (:export #:run-fosc-tests))
+  (:export #:run-tests))
 
-(in-package #:fosc-tests)
+(in-package #:fosc-test)
 
 ;;; Auxiliary
 
@@ -145,5 +145,5 @@ anim id est laborum.
         (data2 (decode-bundle (apply #'encode-bundle data1))))
    (is (osc-equal data1 data2))))
 
-(defun run-fosc-tests ()
+(defun run-tests ()
   (run! 'fosc-suite))

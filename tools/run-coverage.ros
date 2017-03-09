@@ -40,11 +40,11 @@ exec ros -Q -- $0 "$@"
          (with-coverage
            (push :coverage *features*)
            (asdf:load-system :fosc
-                             :force '(:fosc :fosc-tests)
+                             :force '(:fosc :fosc-test)
                              :force-not force-not)
            (asdf:test-system :fosc))
       (setf *features* (remove :coverage *features*))
-      (delete-package :fosc-tests)
+      (delete-package :fosc-test)
       (delete-package :fosc)
       (asdf:load-system :fosc
                         :force '(:fosc)
