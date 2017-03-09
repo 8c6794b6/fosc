@@ -379,7 +379,7 @@
   (let* ((len (the (unsigned-byte 32) (readu32-be buf)))
          (ret (with-fast-output (out)
                 (dotimes (i len)
-                  (write8 (readu8 buf) out)))))
+                  (writeu8 (readu8 buf) out)))))
     (unpad buf)
     ret))
 

@@ -47,17 +47,23 @@
 
 (test-edm i32-positive 123)
 (test-edm i32-negative -123)
+
 (test-edm f32-positive 1.234)
 (test-edm f32-positive-small 1e-23)
+
 (test-edm ratio 37/42)
+
 (test-edm f32-positive-big 1234567.890123456789)
 (test-edm f32-negative -9.8765)
+
 (test-edm f64-positive 1.23456789d0)
 (test-edm f64-positive-small 1d-31)
 (test-edm f64-negative -123.456789d0)
-(test-edm f63-negative-small -1d-31)
+(test-edm f64-negative-small -1d-31)
+
 (test-edm i64-positive (ash 1 62))
 (test-edm i64-negative (ash -1 62))
+
 (test-edm string "quick")
 (test-edm string-empty "")
 (test-edm string-lorem "Lorem ipsum dolor sit amet, consectetur adipiscing
@@ -68,8 +74,11 @@ voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
 occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
 anim id est laborum.
 ")
-(test-edm vector-4 #(1 2 3 4))
-(test-edm vector-17 #(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17))
+
+(test-edm vector-4 #(0 1 2 3 4))
+(test-edm vector-17 #(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17))
+(test-edm vector-255 #(0 1 2 127 128 129 253 254 255))
+
 (test-edm list '(1 2 3))
 
 (test octet-vector
