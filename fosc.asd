@@ -3,7 +3,7 @@
 (defsystem #:fosc
   :name "fosc"
   :description "Efficient OSC"
-  :author "8c6794b6 <8c6794b6@gmail.com>"
+  :author "8c6794b6"
   :license "MIT"
   :version "0.9.6"
   :depends-on
