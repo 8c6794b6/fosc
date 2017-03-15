@@ -7,13 +7,9 @@
            #:encode-error
            #:decode-message
            #:decode-bundle
-           #:decode-error
-           #:octets-to-ascii
-           #:ascii-to-octets))
+           #:decode-error))
 
 (in-package #:fosc)
-
-;; (declaim (optimize (speed 3) (safety 0) (debug 0)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find :coverage *features*)
