@@ -5,7 +5,10 @@
   :description "Tests for fosc"
   :author "8c6794b6 <8c6794b6@gmail.com>"
   :license "MIT"
-  :depends-on (:fosc :fiveam)
+  :depends-on (:fosc
+               :bordeaux-threads
+               :fiveam
+               :usocket)
   :pathname "t"
   :components ((:file "fosc"))
   :perform (test-op :after (o c)

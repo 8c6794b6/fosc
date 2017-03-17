@@ -5,7 +5,7 @@ exec ros -Q -- $0 "$@"
 |#
 
 (ros:ensure-asdf)
-(ql:quickload '(:fast-io) :silent t)
+(ql:quickload '(:fast-io :usocket :bordeaux-threads) :silent t)
 
 (defpackage :cov
   (:use :cl))
@@ -40,12 +40,22 @@ exec ros -Q -- $0 "$@"
          (with-coverage
            (push :coverage *features*)
            (asdf:load-system :fosc
-                             :force '(:fosc :fosc-test)
+                             :force '(:fosc/src/condition
+                                      :fosc/src/timetag
+                                      :fosc/src/encdec
+                                      :fosc/src/network)
                              :force-not force-not)
            (asdf:test-system :fosc))
+      (in-package :cl-user)
       (setf *features* (remove :coverage *features*))
-      (delete-package :fosc-test)
-      (delete-package :fosc)
+      (mapc #'delete-package '(:fosc-test
+                               :fosc/src/main
+                               :fosc/src/network
+                               :fosc/src/encdec
+                               :fosc/src/timetag))
       (asdf:load-system :fosc
-                        :force '(:fosc)
+                        :force '(:fosc/src/condition
+                                 :fosc/src/timetag
+                                 :fosc/src/encdec
+                                 :fosc/src/network)
                         :force-not force-not))))

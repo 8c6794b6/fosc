@@ -1,7 +1,10 @@
 ;;;; fosc-test.lisp -- Tests for fosc
 
-(defpackage :fosc-test
-  (:use #:cl #:fosc #:fiveam)
+(defpackage #:fosc-test
+  (:use #:cl
+        #:fosc
+        #:fiveam
+        #:usocket)
   (:export #:run-tests))
 
 (in-package #:fosc-test)
@@ -39,11 +42,30 @@
           (decode-bundle (encode-bundle ,timetag '(,@messages)))))))
 
 
-;;; Test suite
+;;; Time suite
 
-(def-suite fosc-suite :description "Test suite for fosc package.")
+(def-suite time-suite
+    :description "Test suite for time package.")
 
-(in-suite fosc-suite)
+(in-suite time-suite)
+
+;; Something wrong in ABCL, with the use of `encode-universal-time' below.
+;; Manually writing the result of `(encode-universal-time 0 0 0 1 1 1970 0)'
+;; for `unix-epoch'.
+(test utc-to-ntp
+  (let* ((unix-epoch 2208988800)
+         (t0 (- (get-universal-time) unix-epoch))
+         (t1 (utc)))
+    (is (<= 0d0 (- t1 t0) 1d0)))
+  (is (< 0 (utc->ntp (utc)) (expt 2 64))))
+
+
+;;; Encdec suite
+
+(def-suite encdec-suite
+    :description "Test suite for encdec package.")
+
+(in-suite encdec-suite)
 
 (test-edm i32-positive 123)
 (test-edm i32-negative -123)
@@ -99,14 +121,14 @@ anim id est laborum.
           '(12 34.567 "eight" #(9 10)))
 
 (test conditions
-  (signals (encode-error)
+  (signals (fosc-encode-error)
     (flet ((fn (x)
              (+ x 1)))
       (encode-message "/foo" (list #'fn))))
   (signals (error)
     (encode-bundle 'not-a-time-tag
                    '(("/foo" 1 2 3) ("/bar" 4 5 6))))
-  (signals (decode-error)
+  (signals (fosc-decode-error)
     (let ((data (encode-message "/foo" 1 2.0)))
       ;; Manually making message with invalid OSC typetag.
       (setf (aref data 9) 255)
@@ -114,13 +136,16 @@ anim id est laborum.
 
 (test-edb bundle-1 #xffffffffffffffff
   ("/foo" 1 2.34 "5") ("/bar" #(6 7) 8.9 0))
+
 (test-edb bundl-2 #xdeadbeaf12345678
   ("/foo" 1 2.34 "five" ("/bar" #(6 7) -8.9)))
+
 (test-edb bundle-3 #x1234567812345678
   ("/foo" 1 2.34 "5")
   ("/bar" #(6 7) 8.9 0)
   ("/buzz" "blahblahblah" 12 3.45 "" 6.7 "eight" 9)
   ("/quux" "" 12 3.45 "" 6.7d0 "eight" 9))
+
 (test-edb bundle-4 #xdeadbeaf
   ("/foo" 1 2.34 "5") ("/bar" #(6 7) (8 9 10)))
 
@@ -154,5 +179,120 @@ anim id est laborum.
         (data2 (decode-bundle (apply #'encode-bundle data1))))
    (is (osc-equal data1 data2))))
 
+(test encode-osc-error
+  (signals fosc-encode-error (encode-osc "foobar")))
+
+(test encode-osc-message
+  (let ((data (message "/foo" '(1 2 3))))
+    (is (equal data (decode-osc (encode-osc data))))))
+
+(test encode-osc-bundle
+  (let ((data (bundle nil
+                      (list (message "/foo" '(1 2 3))
+                            (bundle nil
+                                    (list (message "/bar0" '(40 41 42))
+                                          (message "/bar1" '(43 44 45))))
+                            (message "/buzz" '("5" 6.0))))))
+    (is (equal data (decode-osc (encode-osc data))))))
+
+(test encode-osc-bundle-utc
+  (let* ((now (utc))
+         (data (bundle now (list (message "/foo" '(1 2 3)))))
+         (encoded (encode-osc data))
+         (decoded (decode-osc encoded)))
+    (is (equal data decoded))))
+
+
+;;; Network suite
+
+(defun echo-server-udp (port)
+  (let ((socket (usocket:socket-connect nil nil
+                                        :protocol :datagram
+                                        :local-host "127.0.0.1"
+                                        :local-port port)))
+    (bt:make-thread
+     (lambda ()
+       (unwind-protect
+            (loop
+               :with data and n and host and port
+               :do (setf (values data n host port) (recv socket))
+               :while (not (equal data '("/quit")))
+               :do (usocket:socket-send socket (encode-osc data) n
+                                        :host host
+                                        :port port))
+         (usocket:socket-close socket))))))
+
+(defun echo-server-tcp (port)
+  (let ((socket (usocket:socket-listen "127.0.0.1"
+                                       port
+                                       :element-type '(unsigned-byte 8)
+                                       :reuse-address t)))
+    (bt:make-thread
+     (lambda ()
+       (unwind-protect
+            (loop
+               :with client = (usocket:socket-accept socket)
+               :for data = (recv client)
+               :while (not (equal data '("/quit")))
+               :do (send client data)
+               :finally (usocket:socket-close client))
+         (usocket:socket-close socket))))))
+
+(defmacro test-echo (name server port protocol)
+  `(test ,name
+     (let* ((server-thread (,server ,port))
+            (client-socket (open-socket :host "127.0.0.1"
+                                        :port ,port
+                                        :protocol ,protocol)))
+       (unwind-protect
+            (progn
+              (send client-socket (message "/foo" '(1 2 3)))
+              (is (equal '("/foo" 1 2 3) (recv client-socket)))
+              (send client-socket (message "/bar" '(4 5 6)))
+              (is (equal '("/bar" 4 5 6) (wait client-socket "/bar")))
+              (send client-socket (message "/quit" nil))
+              (bt:join-thread server-thread)
+              (pass "server thread joined.~%"))
+         (when (bt:thread-alive-p server-thread)
+           (bt:destroy-thread server-thread))
+         (close-socket client-socket)))))
+
+(def-suite network-suite
+    :description "Test for network.")
+
+(in-suite network-suite)
+
+(test simple-network-error
+  (signals fosc-network-error (send nil '("/foo" 1 2 3)))
+  (signals fosc-network-error (recv nil))
+  (signals fosc-network-error (wait nil nil))
+  (signals fosc-network-error (wait (open-socket :port 12345) "/foo")))
+
+(test-echo echo-udp echo-server-udp 8931 :udp)
+
+(test-echo echo-tcp echo-server-tcp 2741 :tcp)
+
+(test wait-many
+  (let* ((server-thread (echo-server-udp 4649))
+         (data3 (message "/buzz" '(7 8 9)))
+         (client-socket (open-socket :host "127.0.0.1"
+                                     :port 4649
+                                     :protocol :udp)))
+    (unwind-protect
+         (progn
+           (send client-socket (message "/foo" '(1 2 3)))
+           (send client-socket (message "/bar" '(4 5 6)))
+           (send client-socket data3)
+           (is (equal data3 (wait client-socket "/buzz"))))
+      (send client-socket (message "/quit" nil))
+      (when (bt:thread-alive-p server-thread)
+        (bt:destroy-thread server-thread))
+      (close-socket client-socket))))
+
 (defun run-tests ()
-  (run! 'fosc-suite))
+  (explain!
+   (nconc (run 'time-suite)
+          (run 'encdec-suite)
+          ;; OSC server not working under CMUCL.
+          #-cmucl
+          (run 'network-suite))))
