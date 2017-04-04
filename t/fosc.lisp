@@ -214,7 +214,7 @@ anim id est laborum.
      (lambda ()
        (unwind-protect
             (loop
-               :with data and n and host and port
+               :with data :and n :and host :and port
                :do (setf (values data n host port) (recv socket))
                :while (not (equal data '("/quit")))
                :do (usocket:socket-send socket (encode-osc data) n
@@ -293,6 +293,6 @@ anim id est laborum.
   (explain!
    (nconc (run 'time-suite)
           (run 'encdec-suite)
-          ;; OSC server not working under CMUCL.
-          #-cmucl
+          ;; OSC server not working under CMUCL and ECL.
+          #-(or cmucl ecl)
           (run 'network-suite))))

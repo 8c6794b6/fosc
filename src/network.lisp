@@ -33,7 +33,7 @@
   (usocket:socket-close sock))
 
 
-;;; Send/receive
+;;; Send, receive, and wait
 
 (defun send (sock osc)
   "Send OSC data with SOCK."

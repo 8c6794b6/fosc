@@ -8,7 +8,7 @@
   :description "Efficient OSC"
   :author "8c6794b6"
   :license "MIT"
-  :version "0.10.0"
+  :version "0.10.1"
   :class :package-inferred-system
   :depends-on
   #+(or abcl ccl sbcl)
