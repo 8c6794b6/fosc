@@ -26,8 +26,8 @@ script:
   - if [[ $LISP == 'sbcl-bin' ]];
     then
       ros -s cl-coveralls -s fiveam -s fast-io
-          -e '(setf fiveam:*on-error* t
-                    fiveam:*on-failure* t)'
+          -e '(setf fiveam:*on-error* :backtrace
+                    fiveam:*on-failure* backtrace)'
           -e '(setf *debugger-hook*
                     (lambda (c h)
                       (declare (ignore c h))
@@ -36,9 +36,9 @@ script:
           -e '(coveralls:with-coveralls (:exclude (list "t" "tools"))
                 (asdf:test-system :fosc))';
     else
-      ros -s fiveam -s fast-io
-          -e '(setf fiveam:*on-error* t
-                    fiveam:*on-failure* t)'
+      ros -s fiveam -s fast-io -s usocket -s bordeaux-threads
+          -e '(setf fiveam:*on-error* :backtrace
+                    fiveam:*on-failure* :backtrace)'
           -e '(setf *debugger-hook*
                     (lambda (c h)
                       (declare (ignore c h))
