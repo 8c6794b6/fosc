@@ -4,7 +4,7 @@
 (if (uiop:getenv "COVERALLS")
     (defsystem :fosc-benchmarks
       :name "fosc-benchmarks"
-      :description "Skip me when building for taking code coverage"
+      :description "Skip me when building for code coverage"
       :author "8c6794b6 <8c6794b6@gmail.com>"
       :license "MIT")
     (defsystem :fosc-benchmarks

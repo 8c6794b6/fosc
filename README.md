@@ -18,9 +18,9 @@ The package has been tested under Linux x86-64 with following implementations:
  - ABCL 1.4.0 (with Java 1.8)
  - Clozure CL 1.11-16635
  - CMUCL 21b
- - ECL 16.1.2
+ - ECL 16.1.3
  - GNU CLISP 2.49 (requires ASDF >= 3.1)
- - SBCL 1.3.15
+ - SBCL 1.3.16
 
 
 Examples
