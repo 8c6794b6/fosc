@@ -186,6 +186,15 @@ anim id est laborum.
   (let ((data (message "/foo" '(1 2 3))))
     (is (equal data (decode-osc (encode-osc data))))))
 
+(test encode-osc-bundle-raw
+  (let ((data '(:bundle 12345
+                ("/foo" 1 2 3)
+                (:bundle 67890
+                 ("/bar" 4 5 6)
+                 ("/buzz" 7))
+                ("/quux" 8 9 10))))
+    (is (equal data (decode-osc (encode-osc data))))))
+
 (test encode-osc-bundle
   (let ((data (bundle nil
                       (list (message "/foo" '(1 2 3))

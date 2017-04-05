@@ -518,7 +518,7 @@ TIMETAG is a NTP timetag value. DATA is a list of OSC bundle element.
   "Makes an OSC bundle from UTC time tag value and PAYLOAD data.
 UTC could be NIL for immediate execution, or REAL number for UTC time."
   (let ((timetag (if utc (utc->ntp utc) immediately)))
-    (list :bundle timetag payload)))
+    `(:bundle ,timetag ,@payload)))
 
 (defun bundlep (data)
   "T if data is OSC bundle."
@@ -532,7 +532,7 @@ UTC could be NIL for immediate execution, or REAL number for UTC time."
   (fast-write-sequence
    (with-fast-output (tmp)
      (if (bundlep data)
-         (let ((encoded (encode-osc-bundle (cadr data) (caddr data))))
+         (let ((encoded (encode-osc-bundle (cadr data) (cddr data))))
            (fast-write-sequence encoded tmp))
          (encode-message-elt tmp (car data) (cdr data)))
      (encode-int32 buf (buffer-position tmp)))
@@ -549,7 +549,7 @@ UTC could be NIL for immediate execution, or REAL number for UTC time."
   "Encode DATA to octet vector."
   (if (consp data)
       (if (bundlep data)
-          (encode-osc-bundle (cadr data) (caddr data))
+          (encode-osc-bundle (cadr data) (cddr data))
           (with-fast-output (buf)
             (encode-message-elt buf (car data) (cdr data))))
       (fosc-encode-error 'encode-osc "unsupported data ~a" data)))
@@ -563,7 +563,7 @@ UTC could be NIL for immediate execution, or REAL number for UTC time."
                      (rec (cons (decode-osc data) acc)))
                    (nreverse acc)))))
     (let ((timetag (readu64-be buf)))
-      (cons timetag (list (rec nil))))))
+      (cons timetag (rec nil)))))
 
 (defun decode-osc (data)
   (declare (type octet-vector data))
