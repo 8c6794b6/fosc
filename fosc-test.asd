@@ -3,7 +3,7 @@
 (defsystem #:fosc-test
   :name "fosc-test"
   :description "Tests for fosc"
-  :author "8c6794b6 <8c6794b6@gmail.com>"
+  :author "8c6794b6"
   :license "MIT"
   :depends-on (:fosc
                :bordeaux-threads

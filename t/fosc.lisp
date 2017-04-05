@@ -205,6 +205,10 @@ anim id est laborum.
 
 ;;; Network suite
 
+;;; OSC server test under CMUCL and ECL are not working. In ECL,
+;;; `usocket:socket-receive' for datagram protocol does not return remote host
+;;; and port.
+
 (defun echo-server-udp (port)
   (let ((socket (usocket:socket-connect nil nil
                                         :protocol :datagram
@@ -268,10 +272,12 @@ anim id est laborum.
   (signals fosc-network-error (wait nil nil))
   (signals fosc-network-error (wait (open-socket :port 12345) "/foo")))
 
+#-ecl
 (test-echo echo-udp echo-server-udp 8931 :udp)
 
 (test-echo echo-tcp echo-server-tcp 2741 :tcp)
 
+#-ecl
 (test wait-many
   (let* ((server-thread (echo-server-udp 4649))
          (data3 (message "/buzz" '(7 8 9)))
@@ -293,6 +299,6 @@ anim id est laborum.
   (explain!
    (nconc (run 'time-suite)
           (run 'encdec-suite)
-          ;; OSC server not working under CMUCL and ECL.
-          #-(or cmucl ecl)
+          ;; OSC server not working under CMUCL.
+          #-cmucl
           (run 'network-suite))))
