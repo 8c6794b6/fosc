@@ -2,10 +2,13 @@
 
 all: test
 
-test: test-abcl test-ccl test-cmucl test-ecl test-sbcl
+test: test-abcl test-allegro test-ccl test-cmucl test-ecl test-sbcl
 
 test-abcl:
 	ros -L abcl tools/run-test.ros
+
+test-allegro:
+	ros -L allegro tools/run-test.ros
 
 test-ccl:
 	ros -L ccl-bin tools/run-test.ros

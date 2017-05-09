@@ -62,10 +62,11 @@
   (relative-pathname #p"data/"))
 
 (defparameter *lisp-name*
-  #+sbcl "sbcl"
+  #+allegro "algr"
   #+ccl "ccl"
   #+cmucl "cmu"
-  #-(or sbcl ccl cmucl) nil
+  #+sbcl "sbcl"
+  #-(or allegro sbcl ccl cmucl) nil
   "Shortened Common Lisp implementation name.")
 
 (defvar *max-y* 0)

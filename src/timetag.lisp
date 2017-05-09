@@ -8,21 +8,39 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (unless (find :coverage *features*)
-    (declaim (inline utc utc->ntp))))
+    (declaim (inline utc utc->ntp)))
+  #+allegro
+  (progn
+    (ff:def-foreign-type timeval (:struct (tv_sec :long)
+                                          (tv_usec :long)))
+    (ff:def-foreign-call (allegro-ffi-gettimeofday "gettimeofday")
+                         ((timeval (* timeval))
+                          (timezone :foreign-address))
+                         :returning (:int fixnum))))
 
 (defun utc ()
   "Returns DOUBLE-FLOAT value of seconds since 1970-01-01.
 Precision varies across implementations."
   #+abcl
   (* (java:jstatic "currentTimeMillis" "java.lang.System") 1d-3)
+  #+allegro
+  (flet ((gettimeofday ()
+           (let ((tv (ff:allocate-fobject 'timeval :c)))
+             (allegro-ffi-gettimeofday tv 0)
+             (let ((sec (ff:fslot-value-typed 'timeval :c tv 'tv_sec))
+                   (usec (ff:fslot-value-typed 'timeval :c tv 'tv_usec)))
+               (ff:free-fobject tv)
+               (values sec usec)))))
+    (multiple-value-bind (sec nsec) (gettimeofday)
+      (+ sec (* nsec 1d-6))))
   #+(and ccl (not windows))
   (ccl:rlet ((tv :timeval))
-            (ccl:external-call "gettimeofday"
-                               :address tv
-                               :address (ccl:%null-ptr)
-                               :int)
-            (+ (ccl:pref tv :timeval.tv_sec)
-               (* (ccl:pref tv :timeval.tv_usec) 1d-6)))
+    (ccl:external-call "gettimeofday"
+                       :address tv
+                       :address (ccl:%null-ptr)
+                       :int)
+    (+ (ccl:pref tv :timeval.tv_sec)
+       (* (ccl:pref tv :timeval.tv_usec) 1d-6)))
   #+clisp
   (* (get-internal-real-time) 1d-6)
   #+cmu

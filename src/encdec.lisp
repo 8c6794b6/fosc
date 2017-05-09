@@ -13,9 +13,6 @@
 
            #:encode-message
            #:encode-bundle
-           #:decode-message
-           #:decode-bundle
-
            #:encode-int32
            #:encode-int64
            #:encode-float32
@@ -23,6 +20,8 @@
            #:encode-string
            #:encode-blob
 
+           #:decode-message
+           #:decode-bundle
            #:decode-int32
            #:decode-int64
            #:decode-float32
@@ -80,9 +79,9 @@
   #+abcl
   (system:single-float-bits f)
   #+allegro
-  (multiple-value-bind (x y)
+  (multiple-value-bind (hi lo)
       (excl:single-float-to-shorts f)
-    (+ (ash x 16) y))
+    (+ (ash hi 16) lo))
   #+ccl
   (ccl::single-float-bits f)
   #+cmucl
