@@ -13,5 +13,4 @@
   :components ((:file "fosc"))
   :perform (test-op :after (o c)
                     (load-system :fosc-test)
-                    (funcall (intern (string :run-tests)
-                                     '#:fosc-test))))
+                    (symbol-call :fosc-test :run-tests)))

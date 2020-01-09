@@ -16,7 +16,10 @@
     (ff:def-foreign-call (allegro-ffi-gettimeofday "gettimeofday")
                          ((timeval (* timeval))
                           (timezone :foreign-address))
-                         :returning (:int fixnum))))
+      :returning (:int fixnum))))
+
+(declaim
+ (ftype (function () double-float) utc))
 
 (defun utc ()
   "Returns DOUBLE-FLOAT value of seconds since 1970-01-01.
@@ -59,7 +62,7 @@ sec = (double) tv.tv_sec + ((double) tv.tv_usec) / 1000000;
 }"))
   #+sbcl
   (multiple-value-bind (sec nsec) (sb-ext:get-time-of-day)
-    (+ sec (* nsec 1d-6)))
+    (the double-float (+ sec (* nsec 1d-6))))
   #-(or abcl (and ccl (not windows)) clisp cmu ecl sbcl)
   ;; CL's get-universal-time uses an epoch of 1/1/1900. Adjust the result to
   ;; the Unix epoch.
@@ -67,12 +70,17 @@ sec = (double) tv.tv_sec + ((double) tv.tv_usec) / 1000000;
     (coerce (- (get-universal-time) unix-epoch) 'double-float)))
 
 (defun utc->ntp (utc-time)
-  (multiple-value-bind (sec nsec) (truncate utc-time 1d0)
+  (declare (double-float utc-time))
+  (multiple-value-bind (sec nsec)
+      (truncate utc-time 1d0)
     (declare (type (unsigned-byte 32) sec)
              (type double-float nsec))
     ;; The `unix-epoch' is pre-computed to support ABCL. The value
-    ;; `2208988800' was obtained by evaluating `(encode-universal-time 0 0 0 1
-    ;; 1 1970 0)' in other Common Lisp implementations.
+    ;; `2208988800' was obtained by evaluating:
+    ;;
+    ;;   (encode-universal-time 0 0 0 1 1 1970 0)
+    ;;
+    ;; in other Common Lisp implementations.
     (let* ((unix-epoch 2208988800)
            (int32-max #.(expt 2 32))
            (high-bits (the (unsigned-byte 32) (+ sec unix-epoch)))

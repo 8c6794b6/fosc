@@ -65,7 +65,7 @@
        (values (decode-osc data) n remote-host remote-port)))
     ((usocket:stream-usocket-p sock)
      (let* ((stream (usocket:socket-stream sock))
-            (head32 (loop for i below 4 collect (read-byte stream)))
+            (head32 (loop :for i :below 4 :collect (read-byte stream)))
             (size (with-fast-input (buf (octets-from head32))
                     (readu32-be buf)))
             (buf (make-octet-vector size)))
