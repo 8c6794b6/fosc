@@ -20,7 +20,7 @@ test-ecl:
 	ros -L ecl tools/run-test.ros
 
 test-sbcl:
-	ros -L sbcl tools/run-test.ros
+	ros -L sbcl-bin tools/run-test.ros
 
 coverage: coverage-ccl coverage-sbcl
 
