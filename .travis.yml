@@ -10,7 +10,6 @@ addons:
 env:
   matrix:
     - LISP=abcl
-    - LISP=allegro
     - LISP=ccl-bin
     - LISP=sbcl-bin COVERALLS=true
 
