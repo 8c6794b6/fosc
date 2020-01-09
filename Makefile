@@ -28,7 +28,7 @@ coverage-ccl:
 	ros -L ccl-bin tools/run-coverage.ros
 
 coverage-sbcl:
-	ros -L sbcl tools/run-coverage.ros
+	ros -L sbcl-bin tools/run-coverage.ros
 
 clean:
 	find ./  \
