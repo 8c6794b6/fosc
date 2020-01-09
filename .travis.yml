@@ -5,11 +5,9 @@ addons:
   apt:
     packages:
       - libc6-i386
-      - openjdk-7-jre
 
 env:
   matrix:
-    - LISP=abcl
     - LISP=ccl-bin
     - LISP=sbcl-bin COVERALLS=true
 
